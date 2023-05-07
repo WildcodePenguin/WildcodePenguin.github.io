@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="content-language" content="ja">
+    <title>連想ワード「ケンサ君」</title>
+    <style>
+        pre {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+      </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        function sendRequest() {
+            $("#results").html("");
+            var url = "https://labs.goo.ne.jp/api/keyword";
+            var data = {
+                "app_id": "42119646afd848df641822a059c76893484131f6bec43d04db6a561a86296eaf",
+                // "request_id": "record001",
+                "title": $("#body").val(), // $("#title").val(),
+                "body": $("#body").val(),
+                "max_num": 5,
+                "focus": "ORG"
+            };
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+                success: function(response) {
+                    var keywords = response.keywords;
+                    var keywordList = "";
+
+                    for (var i = 0; i < keywords.length; i++) {
+                        var keyword = Object.keys(keywords[i])[0];
+                        keywordList += "<li>" + keyword + "</li>";
+                        searchWikipedia(keyword);
+                    }
+
+                    // $("#results").html("<ul>" + keywordList + "</ul>");
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                }
+            });
+        }
+async function searchWikipedia(searchTerm) {
+                // Wikipedia APIへのリクエストURLを作成
+
+                /*if (chainType === "perfectwords") {*/
+                  var url = "https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=" + searchTerm; // 単一検索
+                /*} else if (chainType === "somewords") {
+                  var url = "https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=" + searchTerm; // 複数候補
+                }
+                */
+                // Wikipedia APIへのGETリクエストを送信
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    dataType: "jsonp",
+                    success: function(data) {
+                        // APIからのレスポンスデータを取得して表示
+                        var pages = data.query.pages;
+                        var output = "";
+
+                        for (var pageId in pages) {
+                            var page = pages[pageId];
+                            var title = page.title;
+                            var pageUrl = "https://ja.wikipedia.org/?curid=" + pageId;
+                            var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
+
+                            output = "<div><h3>" + title + "</h3><pre>" + extract + "</pre></div>";
+                        }
+
+                        if (extract === "") {
+                            output = "<div><h3>" + title + "</h3><p>検索結果が見つかりませんでした。</p></div>";
+                            pageUrl = "https://ja.wikipedia.org/w/index.php?search="+title;
+                        }
+
+                        $("#results").append(output+'<BR><a href="'+pageUrl+'" target="_blank">詳細はこちら</a>');
+                    },
+                    error: function(error) {
+                        console.log("エラーが発生しました。");
+                    }
+                });
+    }
+    </script>
+</head>
+<body style="zoom: 200%;">
+    <h1>連想ワード「ケンサ君」</h1><!--
+    <label for="title">Title:</label><br>
+    <input type="text" id="title" name="title" value=""><br><br>-->
+    <label for="body">質問:</label><br>
+    <textarea id="body" name="body"></textarea><br><br>
+    <button onclick="sendRequest()">抽出して検索する</button>
+
+    <h2>結果:</h2>
+    <div id="results"></div>
+</body>
+</html>

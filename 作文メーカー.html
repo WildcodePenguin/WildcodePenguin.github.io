@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>マルコフ連鎖テキスト生成</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <style>
+    #outputText {
+      white-space: pre-wrap;
+      width: 100%;
+      color: rgb(99, 65, 132);
+    }
+  </style>
+</head>
+<body>
+  <textarea id="inputText" rows="10" cols="50"></textarea><br>
+  <input type="radio" name="chainType" value="normal" checked="checked" onchange="updateChainType()">通常のマルコフ連鎖
+  <input type="radio" name="chainType" value="twoWords" onchange="updateChainType()">2つ前も含めたマルコフ連鎖<BR>
+  短め<input type="range" id="charLimit" min="10" max="10000000" value="5000000" step="10" onchange="updateCharLimit()">
+  <label for="charLimit"> <span id="charLimitValue" style="display: none;">5000000</span></label>  長め　
+  生成した文字数：<output id="len">0</output>文字　<br>元データに対する生成データの割合：<output id="lenp">0</output>％　推定原稿用紙枚数 ：<output id="lenprint">0</output>枚<br>
+  <button onclick="generateText()">生成</button>
+  <button onclick="speakText()">音声読み上げ</button><bR>🔃毎回、回答が変わります。文法的なことは考慮していません。<BR>ChatGPTなどに添削を依頼することを推奨します。
+  <div id="outputText"></div>
+
+  <script>
+    var currentCharIndex = 0;
+    var generatedText = "";
+    var chainType = "normal"; // デフォルトは通常のマルコフ連鎖
+
+function updateChainType() {
+  var chainTypeElements = document.getElementsByName("chainType");
+
+  for (var i = 0; i < chainTypeElements.length; i++) {
+    if (chainTypeElements[i].checked) {
+      chainType = chainTypeElements[i].value;
+      break;
+    }
+  }
+}
+
+    function updateCharLimit() {
+     var charLimitValue = document.getElementById("charLimit").value;
+     document.getElementById("charLimitValue").textContent = charLimitValue;
+    }
+
+    function resetOutputText() {
+      var outputText = document.getElementById("outputText");
+      outputText.textContent = "";
+    }
+function generateText() {
+  var inputText = $("#inputText").val();
+  // var wordLimit = document.getElementById("wordLimit").value;
+  var charLimit = document.getElementById("charLimit").value;
+
+  var markovChain;
+  if (chainType === "normal") {
+    markovChain = buildMarkovChain(inputText);
+  } else if (chainType === "twoWords") {
+    markovChain = buildTwoWordsMarkovChain(inputText);
+  }
+
+  generatedText = generateSentence(markovChain,charLimit);
+  currentCharIndex = 0;
+
+  resetOutputText(); // 表示エリアをリセット
+  displayNextCharacter(); // 最初の文字を表示
+}
+
+function buildTwoWordsMarkovChain(inputText) {
+  var words = inputText.split(/[ \n]+/);
+  var markovChain = {};
+
+  for (var i = 0; i < words.length - 2; i++) {
+    var currentWord = words[i];
+    var nextWord = words[i + 1];
+    var twoWordsKey = currentWord + " " + nextWord;
+
+    if (!markovChain[twoWordsKey]) {
+      markovChain[twoWordsKey] = [];
+    }
+
+    markovChain[twoWordsKey].push(words[i + 2]);
+  }
+
+  return markovChain;
+}
+
+
+
+
+    function displayNextCharacter() {
+      if (currentCharIndex < generatedText.length) {
+        var nextChar = generatedText.charAt(currentCharIndex);
+        var outputText = document.getElementById("outputText");
+        if (nextChar === " ") {
+          outputText.innerHTML += "<br>"; // 改行タグを追加
+        } else {
+          outputText.textContent += nextChar;
+        }
+        currentCharIndex++;
+        document.getElementById("len").value = currentCharIndex;
+        var originalText = document.getElementById("inputText").value;
+        // var generatedText = "生成された文字列";
+        var originalLength = originalText.length;
+        var generatedLength = currentCharIndex;
+        if (currentCharIndex) {
+          var ratio = (generatedLength / originalLength) * 100;
+          document.getElementById("lenp").value = floorDecimal(ratio, 2);
+          document.getElementById("lenprint").value =  floorDecimal(generatedLength/400, 2);
+          console.log("生成された文字列は元の文字列の " + ratio + "% の長さです。");
+        }
+          setTimeout(displayNextCharacter, 0.001); // 100ミリ秒ごとに次の文字を表示
+      }
+    }
+
+function buildMarkovChain(inputText) {
+  var words = inputText.split(/[ \n]+/);
+  var markovChain = {};
+
+  if (chainType === "normal") {
+    for (var i = 0; i < words.length - 1; i++) {
+      var currentWord = words[i];
+
+      if (!markovChain[currentWord]) {
+        markovChain[currentWord] = [];
+      }
+
+      markovChain[currentWord].push(words[i + 1]);
+    }
+  } else if (chainType === "twoWords") {
+    for (var i = 0; i < words.length - 2; i++) {
+      var currentWord = words[i];
+      var nextWord = words[i + 1];
+      var twoWordsKey = currentWord + " " + nextWord;
+
+      if (!markovChain[twoWordsKey]) {
+        markovChain[twoWordsKey] = [];
+      }
+
+      markovChain[twoWordsKey].push(words[i + 2]);
+    }
+  }
+
+  return markovChain;
+}
+
+
+function generateSentence(markovChain, wordLimit) {
+      var words = Object.keys(markovChain);
+      var startIndex = Math.floor(Math.random() * words.length);
+      var currentWord = words[startIndex];
+      var sentence = currentWord;
+
+      for (var i = 0; i < wordLimit - 1; i++) {
+        if (markovChain[currentWord]) {
+          var nextWordIndex = Math.floor(Math.random() * markovChain[currentWord].length);
+          var nextWord = markovChain[currentWord][nextWordIndex];
+          sentence += " " + nextWord;
+          currentWord = nextWord;
+        } else {
+          break;
+        }
+      }
+
+      return sentence;
+    }
+
+function speakText() {
+      var inputText = document.getElementById("outputText").textContent;
+
+      if ('speechSynthesis' in window) {
+        alert("音声読み上げを開始しています...")
+        var speechSynthesis = window.speechSynthesis;
+        var utterance = new SpeechSynthesisUtterance(inputText);
+        speechSynthesis.speak(utterance);
+      } else {
+        alert('Web Speech APIはサポートされていません');
+      }
+    }
+
+// 切り捨て
+function floorDecimal(value, n) {
+  return Math.floor(value * Math.pow(10, n) ) / Math.pow(10, n);
+}
+ 
+// 切り上げ
+function ceilDecimal(value, n) {
+  return Math.ceil(value * Math.pow(10, n) ) / Math.pow(10, n);
+}
+ 
+// 四捨五入
+function roundDecimal(value, n) {
+  return Math.round(value * Math.pow(10, n) ) / Math.pow(10, n);
+}
+  </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>宿題を効率化</title>
+    <style>
+        body {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        #banner {
+            height: 150px;
+            width: 100%;
+            background-color: #a4fffa;
+            text-align: center;
+            line-height: 50px;
+            font-weight: bold;
+            font-size: 32px;
+        }
+
+        #sidebar {
+            width: 680px;
+            background-color: #f7e6ff;
+            padding: 20px;
+            order: 1;
+        }
+
+        #content {
+            flex-grow: 1;
+            padding: 20px;
+            order: 2;
+        }
+
+        #clock {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            order: 3;
+        }
+        a {
+            font-size: 44px; /* 16ピクセルの文字サイズ */
+        }
+  a:link {
+    color: blue; /* 未読リンクの色 */
+  }
+
+  a:visited {
+    color: blue; /* 既読リンクの色も青にする */
+  }
+
+  a:hover {
+    color: red; /* ホバー時の色 */
+  }
+
+  a:active {
+    color: green; /* クリック時の色 */
+  }
+    </style>
+</head>
+<body>
+    <div id="banner">「宿題なんて秒で終わる」<br>「人類の夢―宿題自動回答がついに実現!?」<br>ChatGPTが作った次世代勉強ツール</div>
+    <div id="sidebar">
+        <h2>目次</h2>
+        <ul id="fileList"></ul>
+    </div>
+    <div id="content">
+        <div id="fileContent"></div>
+    </div>
+    <div id="clock">
+    </div>
+    <div id="analog">
+    </div>
+<script>
+    window.addEventListener("DOMContentLoaded", function() {
+      loadHTML("トップ画面.html");
+    });
+    function updateClock() {
+        var now = new Date();
+        var hours = now.getHours();
+        var minutes = now.getMinutes();
+        var seconds = now.getSeconds();
+
+        hours = (hours < 10 ? "0" : "") + hours;
+        minutes = (minutes < 10 ? "0" : "") + minutes;
+        seconds = (seconds < 10 ? "0" : "") + seconds;
+
+        var timeString = hours + ":" + minutes + ":" + seconds;
+        document.getElementById("clock").textContent = timeString;
+    }
+
+    setInterval(updateClock, 1000);
+    function loadHTML(file) {
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            document.getElementById("fileContent").innerHTML = this.responseText;
+            // 「起動する」ボタンを表示する
+            /*document.getElementById("fileContent").innerHTML = '';
+            var launchButton = document.createElement("button");
+            launchButton.textContent = file + "を起動する";
+            launchButton.addEventListener("click", function() {
+                window.open(file, "_blank");
+            });
+            document.getElementById("fileContent").appendChild(launchButton);*/
+        }
+    };
+    xhttp.open("GET", file, true);
+    xhttp.send();
+    }
+
+            // ページが読み込まれた時に実行される処理
+            window.addEventListener("DOMContentLoaded", function() {
+                var fileList = document.getElementById("fileList");
+
+                // 外部ファイルからfiles配列を読み込む
+                fetch("files.json")
+                    .then(function(response) {
+                        return response.json();
+                    })
+                    .then(function(files) {
+                        // ファイルリストにリンクを追加
+                        for (var i = 0; i < files.length; i++) {
+                            var file = files[i];
+                            if (file != 'index.html') {
+                                if (file != 'files.json') {
+                                if (file != 'makelist.js'){
+                                if (file != 'favicon.ico'){
+                                if (file != 'makelist.js.save'){
+                                if (file != 'トップ画面.html'){
+                                var listItem = document.createElement("li");
+                                var link = document.createElement("a");
+                                link.href = './'+file;
+                                var nameWithoutExtension = file.replace(/\.[^/.]+$/, "");
+                                link.textContent = nameWithoutExtension; /*
+                                link.addEventListener("click", function(event) {
+                                    event.preventDefault();
+                                    window.open('./'+file, "_blank");
+                                    // loadHTML(event.target.href);
+                                });*/
+                                listItem.appendChild(link);
+                                fileList.appendChild(listItem);
+                                }
+                                }
+                                }
+                                }
+                            }
+                            }
+                        }
+                    })
+                    .catch(function(error) {
+                        console.log("ファイルの読み込みエラー:", error);
+                    });
+            });
+    </script>
+</body>
+</html>

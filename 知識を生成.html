@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>テキストから知識を生み出す</title>
+  <style>
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script>
+    var chainType = "perfectwords"; // デフォルトセット（完全）
+    $(document).ready(function() {
+        $("#Searchbtn").click(function() {
+            var inputText = $("#inputText").val();
+            $("#results").html("");
+            $("#searchResults").html("");
+            $("#output").html("");
+            search(inputText);
+        });
+        $("#dowikibtn").click(function() {
+            var inputText = $("#inputText").val();
+            $("#results").html("");
+            $("#searchResults").html("");
+            $("#output").html("");
+            searchWikipedia(inputText);
+        });
+      // 「分析する」ボタンがクリックされた時の処理
+
+      $("#analyzeBtn").click(function() {
+        $("#results").html("");
+        $("#searchResults").html("");
+        $("#output").html("");
+        // 入力されたテキストを取得
+        var inputText = $("#inputText").val();
+        // $("#results").html("");
+        // searchWikipedia(inputText);
+        // テキストをJSONに組み込む
+        var jsonData = {
+          "app_id": "42119646afd848df641822a059c76893484131f6bec43d04db6a561a86296eaf",
+          "request_id": "record001",
+          "sentence": inputText,
+          "info_filter": "form"
+        };
+
+        // AJAXリクエストを作成
+        $.ajax({
+          url: "https://labs.goo.ne.jp/api/morph",
+          type: "POST",
+          data: JSON.stringify(jsonData),
+          contentType: "application/json",
+          success: function(response) {
+            // 結果のJSONからword_listを取得
+            var wordList = response.word_list;
+            wordList[0].forEach(function(wordData) {
+              var word = wordData[0];
+              // searchWikipedia(word);
+            });
+            // 単語を抽出してスペースで区切って表示
+            var words = wordList[0].map(function(wordData) {
+              return wordData[0];
+            }).join("　");
+
+            // 結果をHTML上に出力
+            $("#output").text(words);
+          }
+        });
+      });
+    });
+
+    async function searchWikipedia(searchTerm) {
+                // Wikipedia APIへのリクエストURLを作成
+
+                if (chainType === "perfectwords") {
+                  var url = "https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=" + searchTerm; // 単一検索
+                } else if (chainType === "somewords") {
+                  var url = "https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=" + searchTerm; // 複数候補
+                }
+                
+                // Wikipedia APIへのGETリクエストを送信
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    dataType: "jsonp",
+                    success: function(data) {
+                        // APIからのレスポンスデータを取得して表示
+                        var pages = data.query.pages;
+                        var output = "";
+
+                        for (var pageId in pages) {
+                            var page = pages[pageId];
+                            var title = page.title;
+                            var pageUrl = "https://ja.wikipedia.org/?curid=" + pageId;
+                            var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
+                            /*
+                            if (chainType === "perfectwords") {
+                              output += "<div><h3>" + title + "</h3><pre>" + extract + "</pre></div>";
+                            } else if (chainType === "somewords") {
+                              output += "<div><h3>" + title + "</h3><pre>" + extract +'<BR><a href="'+pageUrl+'" target="_blank">詳細はこちら</a></pre></div>';
+                            }
+                            */
+                            output += "<div><h3>" + title + "</h3><pre>" + extract +'<BR><a href="'+pageUrl+'" target="_blank">詳細はこちら</a></pre></div>';
+                        }
+
+                        if (extract === "") {
+                            output = "<div><h3>" + title + "</h3><p>検索結果が見つかりませんでした。</p></div>";
+                        }
+                        $("#results").html(output);
+                    },
+                    error: function(error) {
+                        console.log("エラーが発生しました。");
+                    }
+                });
+    }
+
+    function search(query) {
+      var encodedQuery = encodeURIComponent(query); // クエリをURLエンコード
+      encodedQuery = encodedQuery.replace(/%20/g, "+"); // URLエンコードした空白を+に置き換える
+
+      // DuckDuckGo Instant Answer APIのエンドポイントURL（日本語検索用）
+      var apiUrl = "https://api.duckduckgo.com/?q=" + encodedQuery + "&format=json&kl=jp-jp&callback=?";
+
+      // APIリクエストを送信
+      $.getJSON(apiUrl, function(data) {
+        // APIからのレスポンスを処理
+        var results = data.RelatedTopics;
+
+        // 検索結果を表示
+        var resultsContainer = document.getElementById("searchResults");
+        resultsContainer.innerHTML = '’'+query+'’についての<a href="https://duckduckgo.com/?t=h_" target="_blank">DuckDuckGo</a>での<a href="https://duckduckgo.com/?q='+encodedQuery+'&t=h_&ia=web" target="_blank">検索結果</a>';
+
+        if (results && results.length > 0) {
+          for (var i = 0; i < results.length; i++) {
+            var result = results[i];
+            if (result && result.Text) {
+              var resultElement = document.createElement("p");
+              resultElement.innerHTML = '<pre>'+result.Text+'</pre>';
+              resultsContainer.appendChild(resultElement);
+            }
+          }
+        } else {
+          var noResultElement = document.createElement("p");
+          noResultElement.innerHTML = "見つかりませんでした";
+          resultsContainer.appendChild(noResultElement);
+        }
+      });
+    }
+function updateChainType() {
+  var chainTypeElements = document.getElementsByName("chainType");
+
+  for (var i = 0; i < chainTypeElements.length; i++) {
+    if (chainTypeElements[i].checked) {
+      chainType = chainTypeElements[i].value;
+      break;
+    }
+  }
+}
+  </script>
+</head>
+<body style="zoom: 200%;">
+  <h1>テキストから知識を生み出す</h1>
+  <textarea id="inputText" rows="1" cols="50"></textarea><br>
+  <button id="analyzeBtn">分析する</button><button id="Searchbtn">DuckDuckGoで検索する</button><button id="dowikibtn">Wikipediaで探してみる！</button><br>
+  <input type="radio" name="chainType" value="perfectwords" checked="checked" onchange="updateChainType()">完全一致
+  <input type="radio" name="chainType" value="somewords" onchange="updateChainType()">複数候補<BR>
+  <h2>結果</h2>
+  <div id="output"></div>
+  <div id="results"></div>
+  <div id="searchResults"></div>
+</body>
+</html>
