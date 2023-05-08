@@ -156,7 +156,7 @@ div[id^="aidiv"]{
 var csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=';
 var alturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=';
 const windowHeight = window.innerHeight;
-const chatLogHeight = windowHeight - 1275;
+const chatLogHeight = windowHeight * 0.7;
 const styleElement = document.createElement("style");
 styleElement.textContent = `
 body {
@@ -164,7 +164,7 @@ body {
   font-family: "Noto Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Twemoji", sans-serif;
 }
 #chat-log {
-  height: 0.9em; /* 表示する高さを指定 */
+  height: ${chatLogHeight}; /* 表示する高さを指定 */
   overflow: scroll; /* スクロールバーを表示 */
 }
 p {
