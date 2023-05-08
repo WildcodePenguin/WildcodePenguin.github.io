@@ -155,7 +155,7 @@ div[id^="aidiv"]{
 <script>
 var csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=';
 var alturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=';
-const windowHeight = window.innerHeight;
+const windowHeight = window.parent.screen.height;
 const chatLogHeight = windowHeight * 0.7;
 const styleElement = document.createElement("style");
 styleElement.textContent = `
