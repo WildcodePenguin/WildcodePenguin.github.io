@@ -100,7 +100,17 @@ div[id^="aidiv"]{
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-
+.choice {
+  background-color: #eff3ff;
+  border-color: #5d4ae4;
+  color: #5d4ae4;
+  border: 1px solid #5d4ae4; /* 枠線を定義 */
+  border-radius: 5px; /* 角丸を定義 */
+  padding: 10px 20px; /* テキストと枠線の間にスペースを設ける */
+  font-size: 18px; /* テキストのサイズを指定 */
+  cursor: pointer; /* マウスカーソルを手の形に変更 */
+  zoom:0.45;
+}
     </style>
     
 </head>
@@ -161,7 +171,7 @@ p {
   font-size: 8px;
   line-height:10px;
 }
-button {
+button:not(.choice) {
   display: none;
 }
 img {
@@ -232,9 +242,11 @@ setTimeout(function() {
         function processUserInput() {
             const userInput = document.getElementById("user-input").value;
             displayMessage(userInput, "user","");
+            showLoading();
+            let stn = 0;
             if (csturl === 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch='){
-              showLoading();
-              let stn = 0;
+              // showLoading();
+              // let stn = 0;
             }
             searchWikipedia(userInput);
             document.getElementById("user-input").value = "";
@@ -253,6 +265,8 @@ function createDiv(index) {
 let num = 0;
 let stn = 0;
 var b= 0;
+var respall = '';
+var jyanlu = '';
 function printAIResponse(response,index) {
   var chars = response.split("");
   var i = 0;
@@ -268,11 +282,15 @@ function printAIResponse(response,index) {
     else {
       clearInterval(interval);
       stn++;
+      respall += response + '\n';
       // alert(stn);
       // alert(num);
       if (stn === num) {
         // alert("ok");
-        hideLoading();
+        // alert(jyanlu);
+        hideLoading(respall,jyanlu);
+        respall = '';
+        jyanlu = '';
       }
     }
   }, 1); // 0.001秒ごとに1文字出力
@@ -342,6 +360,7 @@ async function searchWikipedia(searchTerm) {
                             var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
                             if (extract !== "") {
                               // num++;
+                              jyanlu += '「'+title+'」';
                               displayMessage(extract, "ai",pageUrl);
                             }
                         }
@@ -373,8 +392,69 @@ async function searchWikipedia(searchTerm) {
 function showLoading() {
   document.getElementById("loading").style.display = "block";
 }
-function hideLoading() {
-  document.getElementById("loading").style.display = "none";
+function hideLoading(inpd,jyanlu) {
+
+
+            var sendata = {
+                "app_id": "42119646afd848df641822a059c76893484131f6bec43d04db6a561a86296eaf",
+                "title": jyanlu,
+                "body": inpd,
+                "max_num": 10
+            };
+            $.ajax({
+                url: "https://labs.goo.ne.jp/api/keyword",
+                type: "POST",
+                data: JSON.stringify(sendata),
+                contentType: "application/json",
+                success: function(response) {
+                    var keywords = response.keywords;
+                    var keywordList = "";
+                    for (var i = 0; i < keywords.length; i++) {
+                        var keyword = Object.keys(keywords[i])[0];
+                        // keywordList += "<li>" + keyword + "</li>";
+                        
+
+                        if (keyword !== 'ChatWikiP') {
+                          var newButton = document.createElement("button");
+                          newButton.innerHTML = keyword;
+                          newButton.classList.add('choice');
+                          newButton.setAttribute("data-keyword", keyword);
+                          newButton.addEventListener("click", function() {
+                            searchWikipedia(this.getAttribute("data-keyword"));
+                          });
+                          chatLog.appendChild(newButton);
+                        } else {
+                          keyword = 'ChatWikiPの使い方';
+                          var newButton = document.createElement("button");
+                          newButton.innerHTML = keyword;
+                          newButton.classList.add('choice');
+                          newButton.setAttribute("data-keyword", keyword);
+                          newButton.addEventListener("click", function() {
+                            displayMessage("現在、単語検索のみ利用可能です。\n調べたい単語を入力して、送信ボタンをタップしよう\n回答の吹き出しをタップするとWikipediaの参照ページが開きます。", "ai","");
+                          });
+                          chatLog.appendChild(newButton);
+                        }
+                        chatLog.scrollTop = chatLog.scrollHeight;
+                    }
+
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                }
+            });
+            
+
+            document.getElementById("loading").style.display = "none";
+            // setTimeout(delindex(), 8000); // 3秒後に実行する
+}
+function delindex() {
+  const choiceElements = document.querySelectorAll('.choice'); // クラス名が「choice」の全ての要素を取得
+  const lastChoiceElement = choiceElements[choiceElements.length - 1]; // 最後の要素を取得
+  for (let i = 0; i < choiceElements.length - 1; i++) {
+    const choiceElement = choiceElements[i];
+    choiceElement.parentNode.removeChild(choiceElement); // 要素を削除
+  }
+  lastChoiceElement.parentNode.appendChild(lastChoiceElement); // 最後の要素を親要素に追加
 }
     </script>
 </body>
