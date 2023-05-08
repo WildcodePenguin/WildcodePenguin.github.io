@@ -361,7 +361,7 @@ async function searchWikipedia(searchTerm) {
                         for (var pageId in pages) {
                             var page = pages[pageId];
                             var title = page.title;
-                            var pageUrl = "https://ja.wikipedia.org/?curid=" + pageId;
+                            var pageUrl = "https://ja.m.wikipedia.org/?curid=" + pageId;
                             var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
                             if (extract !== "") {
                               // num++;
@@ -430,7 +430,7 @@ function hideLoading(inpd,jyanlu) {
                               for (var pageId in pages) {
                                 var page = pages[pageId];
                                 var title = page.title;
-                                var pageUrl = "https://ja.wikipedia.org/?curid=" + pageId;
+                                var pageUrl = "https://ja.m.wikipedia.org/?curid=" + pageId;
                                 var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
                                 if (extract !== "") {
                                   // alert(extract);
