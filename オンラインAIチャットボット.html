@@ -267,6 +267,7 @@ let stn = 0;
 var b= 0;
 var respall = '';
 var jyanlu = '';
+
 function printAIResponse(response,index) {
   var chars = response.split("");
   var i = 0;
@@ -412,17 +413,45 @@ function hideLoading(inpd,jyanlu) {
                     for (var i = 0; i < keywords.length; i++) {
                         var keyword = Object.keys(keywords[i])[0];
                         // keywordList += "<li>" + keyword + "</li>";
-                        
-
-                        if (keyword !== 'ChatWikiP') {
-                          var newButton = document.createElement("button");
-                          newButton.innerHTML = keyword;
-                          newButton.classList.add('choice');
-                          newButton.setAttribute("data-keyword", keyword);
-                          newButton.addEventListener("click", function() {
-                            searchWikipedia(this.getAttribute("data-keyword"));
+                        if (keyword !== 'ChatWikiP') { 
+                          $.ajax({
+                            url: 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=' + keyword,
+                            type: "GET",
+                            dataType: "jsonp",
+                            success: function(datas) {
+                              // APIからのレスポンスデータを取得して表示
+                              var pages = datas.query.pages;
+                              var output = "";
+                              var hidef = false;
+                              for (var pageId in pages) {
+                                var page = pages[pageId];
+                                var title = page.title;
+                                var pageUrl = "https://ja.wikipedia.org/?curid=" + pageId;
+                                var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
+                                if (extract !== "") {
+                                  // alert(extract);
+                                  // 一致するページがある場合、ボタンを作成してページを表示する */
+                                  var newButton = document.createElement("button");
+                                  newButton.innerHTML = title;
+                                  newButton.classList.add('choice');
+                                  newButton.setAttribute("data-keyword", keyword);
+                                  newButton.addEventListener("click", function() {
+                                    // if (csturl !== 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=') {toggleCstUrl();}
+                                    searchWikipedia(title);
+                                  });
+                                  chatLog.appendChild(newButton); 
+                                  chatLog.scrollTop = chatLog.scrollHeight;
+                                }
+                              }
+                              var hidef = true;
+                              if (extract === "") {
+                                // displayMessage("申し訳ありませんが、その質問には対応していません。", "ai","");
+                              }
+                            },
+                            error: function(error) {
+                              console.log("エラーが発生しました。");
+                            }
                           });
-                          chatLog.appendChild(newButton);
                         } else {
                           keyword = 'ChatWikiPの使い方';
                           var newButton = document.createElement("button");
