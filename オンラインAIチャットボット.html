@@ -344,6 +344,7 @@ function displayMessage(message, sender,openurl) {
             }
         });
 async function searchWikipedia(searchTerm) {
+		showLoading();
                 // Wikipedia APIへのリクエストURLを作成
                   var url = csturl + searchTerm; // 自動検索
                   // let num = 0 ;
