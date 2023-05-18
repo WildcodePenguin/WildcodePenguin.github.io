@@ -158,7 +158,10 @@ div[id^="aidiv"]{
       if (key === null) {
         return checkCookieAndAssign();
       }
-      
+      // 入力された値が空の場合、再度プロンプトを表示
+      if (key === "") {
+        return checkCookieAndAssign();
+      }
       // 入力された値をCookieに保存
       document.cookie = "key=" + key;
       
