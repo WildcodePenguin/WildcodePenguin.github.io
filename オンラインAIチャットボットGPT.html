@@ -148,14 +148,17 @@ div[id^="aidiv"]{
         if (cookie.indexOf(cookieName) === 0) {
           var key = cookie.substring(cookieName.length);
           // "key"というデータがCookieにある場合、変数keyに代入
-          return key;
+          if (!key) {
+            return key;
+          }
+          
         }
       }
       
       // Cookieに"key"というデータがない場合、プロンプトを表示し、入力された値を変数keyに代入
       var key = window.prompt("OpenAIのAPIキーを入力してください");
       // 入力された値をCookieに保存
-      if (key !== "") {
+      if (!key) {
         document.cookie = "key=" + key;
       }else {
         checkCookieAndAssign();
