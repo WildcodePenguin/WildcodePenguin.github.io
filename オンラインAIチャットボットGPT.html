@@ -296,7 +296,7 @@ function printAIResponse(response,index) {
     
     if(i < chars.length) {
       var str = chars[i];
-      document.getElementById("aidiv" + index).innerHTML += str.replace(/\n/g, "<br>");
+      document.getElementById("aidiv" + index).innerHTML += str;// str.replace(/\n/g, "<br>");
       i++;
       var chatLogs = document.getElementById("chat-log");
       chatLogs.scrollTop = chatLogs.scrollHeight;
