@@ -116,6 +116,7 @@ div[id^="aidiv"]{
     
 </head>
 <body>
+  
   <center><h2 id="main"><img src="ei-home.png" width="18" height="18" alt="再読み込みボタン" onclick="window.location.reload();">　　GPT3.5　　<img src="ei-random.png" width="18" height="18" alt="切換えボタン" onclick="toggleCstUrl();"></h2></center>
     <div id="chat-container">
         <div id="chat-log">
@@ -125,10 +126,40 @@ div[id^="aidiv"]{
         </div>
         <input type="text" id="user-input" oninput="checkTextbox()" placeholder="Send a message." autofocus />
         <img src="ei-send.png" width="18" height="18" alt="送信マーク" id="sendi" onclick="processUserInput();">
+        
     </div>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
-const apiKey = "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";
+    function deleteCookie() {
+			document.cookie = "key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+			alert("履歴を削除しました。");
+      window.location.reload();
+		}
+      function checkCookieAndAssign() {
+      var cookieName = "key=";
+      var decodedCookie = decodeURIComponent(document.cookie);
+      var cookieArray = decodedCookie.split(';');
+      
+      for(var i = 0; i < cookieArray.length; i++) {
+        var cookie = cookieArray[i];
+        while (cookie.charAt(0) === ' ') {
+          cookie = cookie.substring(1);
+        }
+        if (cookie.indexOf(cookieName) === 0) {
+          var key = cookie.substring(cookieName.length);
+          // "key"というデータがCookieにある場合、変数keyに代入
+          return key;
+        }
+      }
+      
+      // Cookieに"key"というデータがない場合、プロンプトを表示し、入力された値を変数keyに代入
+      var key = window.prompt("OpenAIのAPIキーを入力してください");
+      // 入力された値をCookieに保存
+      document.cookie = "key=" + key;
+      return key;
+    }
+    var key = checkCookieAndAssign();
+const apiKey = key;
 var gptv = false;
 var csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=';
 var alturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=';
@@ -197,7 +228,12 @@ sendButton.addEventListener("click", processUserInput);
 const msgg = document.createElement("p");
 msgg.innerHTML = "Free Research Preview. Study Buddy may produce inaccurate information about people, places, or facts. Study Buddy May 18 Version";
 document.getElementById("chat-container").appendChild(sendButton);
-document.getElementById("chat-container").appendChild(msgg);
+document.getElementById("chat-container").appendChild(msgg); /*
+const apidel = document.createElement("a");
+apidel.onclick = "deleteCookie();";
+apidel.innerHTML =  "Clear API key";
+apidel.style.zoom = 0.5;
+document.getElementById("chat-container").appendChild(apidel);*/
 document.head.appendChild(styleElement);
 setTimeout(function() {
   displayMessage("こんにちは！Study Buddyです。何か知りたいことはありますか？😊", "ai","");
