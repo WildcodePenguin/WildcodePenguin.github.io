@@ -155,7 +155,11 @@ div[id^="aidiv"]{
       // Cookieに"key"というデータがない場合、プロンプトを表示し、入力された値を変数keyに代入
       var key = window.prompt("OpenAIのAPIキーを入力してください");
       // 入力された値をCookieに保存
-      document.cookie = "key=" + key;
+      if (key !== "") {
+        document.cookie = "key=" + key;
+      }else {
+        checkCookieAndAssign();
+      }
       return key;
     }
     var key = checkCookieAndAssign();
