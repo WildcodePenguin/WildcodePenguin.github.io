@@ -296,7 +296,7 @@ function printAIResponse(response,index) {
     
     if(i < chars.length) {
       var str = chars[i];
-      document.getElementById("aidiv" + index).innerHTML += str.replace(/\n/g, "<br>");
+      document.getElementById("aidiv" + index).innerHTML += str;
       i++;
       var chatLogs = document.getElementById("chat-log");
       chatLogs.scrollTop = chatLogs.scrollHeight;
@@ -381,7 +381,7 @@ async function searchWikipedia(searchTerm) {
   }
   var replacedStr = str.replace(/\n/g, "<br>");  
   document.getElementById("loading").style.display = "none";
-  displayMessage(replacedStr,"ai");
+  displayMessage(str,"ai");
     }
     function toggleCstUrl() {
       var mainContent = document.getElementById("main").innerHTML;
