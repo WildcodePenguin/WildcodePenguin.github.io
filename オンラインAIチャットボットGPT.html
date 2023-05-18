@@ -1,0 +1,433 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+    <title>Study Buddy</title>
+    <style>
+body{zoom:3;}
+.message.user {
+  display: flex;
+  margin-bottom: 10px;
+  justify-content: flex-end;
+}
+.message.ai {
+  display: flex;
+  margin-bottom: 10px;
+  text-align: left;
+}
+.bubble {
+  background-color: #bbff6d; /* 黄緑色の吹き出しの背景色 */
+  color: black;
+  padding: 12px;
+  border-radius: 8px;
+  max-width: 60%;
+  position: relative;
+  overflow: hidden;
+  font-size: 10px;
+}
+
+.bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 10px;
+  border-style: solid;
+  border-width: 8px 8px 0 0;
+  border-color: #FFFFE0 transparent transparent transparent;
+} /*
+div[id^="aidiv"]{
+  background-color: #f7f7f8;  白い吹き出しの背景色 
+  justify-content: flex-start;
+} */
+.ai .bubble {
+  background-color: #f7f7f8; /* 白い吹き出しの背景色 */
+  justify-content: flex-start;
+}
+
+@keyframes slideIn {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.bubble {
+  animation: slideIn ease-in-out;
+}
+#chat-container {
+  position: fixed;
+  bottom: 0;
+  left: 6px;
+  right: 6px; /* 右側の余白の幅を設定 */
+}
+#user-input {
+  background-color:#ebf7ff;
+  width: 17.6rem; /* 送信ボタンの幅分を引いた幅に設定 */
+  margin-right: 0px; /* テキストボックスと送信ボタンの間に隙間を設ける場合、必要に応じてマージンを調整してください */
+}
+.message.user .bubble::before {
+  right: auto;
+  left: -10px;
+  border-width: 8px 0 8px 8px;
+  border-color: transparent transparent transparent #bbff6d;
+}
+/*GET*/
+#loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+}
+
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60px;
+  height: 60px;
+  margin: -30px 0 0 -30px;
+  border-radius: 50%;
+  border: 5px solid #fff;
+  border-top-color: #000;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.choice {
+  background-color: #eff3ff;
+  border-color: #5d4ae4;
+  color: #5d4ae4;
+  border: 1px solid #5d4ae4; /* 枠線を定義 */
+  border-radius: 5px; /* 角丸を定義 */
+  padding: 10px 20px; /* テキストと枠線の間にスペースを設ける */
+  font-size: 18px; /* テキストのサイズを指定 */
+  cursor: pointer; /* マウスカーソルを手の形に変更 */
+  zoom:0.45;
+}
+    </style>
+    
+</head>
+<body>
+  <center><h2 id="main"><img src="ei-home.png" width="18" height="18" alt="再読み込みボタン" onclick="window.location.reload();">　　GPT3.5　　<img src="ei-random.png" width="18" height="18" alt="切換えボタン" onclick="toggleCstUrl();"></h2></center>
+    <div id="chat-container">
+        <div id="chat-log">
+        </div>
+        <div id="loading" style="display:none;">
+          <div class="spinner"></div>
+        </div>
+        <input type="text" id="user-input" oninput="checkTextbox()" placeholder="Send a message." autofocus />
+        <img src="ei-send.png" width="18" height="18" alt="送信マーク" id="sendi" onclick="processUserInput();">
+    </div>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+const apiKey = "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";
+var gptv = false;
+var csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=';
+var alturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=';
+const windowHeight = window.innerHeight;
+const chatLogHeight = 0.32513661202186 *windowHeight -108.16120218579;
+const styleElement = document.createElement("style");
+styleElement.textContent = `
+body {
+  background-color: #a0b5d9; /* 薄いベージュ色の背景色 #F5F5DC */
+  font-family: "Noto Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Twemoji", sans-serif;
+}
+#chat-log {
+  height: ${chatLogHeight}px; /* 表示する高さを指定 */
+  overflow: scroll; /* スクロールバーを表示 */
+}
+p {
+  font-size: 8px;
+  line-height:10px;
+}
+button:not(.choice) {
+  display: none;
+}
+img {
+  opacity: 1;
+}
+.faded {
+  opacity: 0.2;
+}
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #000;
+    color: #fff;
+  }
+  img {filter: invert(100%);}
+  .ai .bubble {
+    background-color: #606060; /* 白い吹き出しの背景色 */
+    justify-content: flex-start;
+    color: #ffffff;
+  }
+  .bubble {
+    background-color: #416a2f; /* 黄緑色の吹き出しの背景色 */
+    color: #ffffff;
+    padding: 12px;
+    border-radius: 8px;
+    max-width: 60%;
+    position: relative;
+    overflow: hidden;
+    font-size: 10px;
+  }
+  #user-input {
+    background-color:#1d435c;
+    color:#fff;
+    width: 17.6rem; /* 送信ボタンの幅分を引いた幅に設定 */
+    margin-right: 0px; /* テキストボックスと送信ボタンの間に隙間を設ける場合、必要に応じてマージンを調整してください */
+  }
+  div[id^="aidiv"]{
+    background-color: #606060; /* 白い吹き出しの背景色 */
+    justify-content: flex-start;
+  }
+}
+`;
+checkTextbox();
+const sendButton = document.createElement("button");
+sendButton.textContent = "送信";
+sendButton.addEventListener("click", processUserInput);
+const msgg = document.createElement("p");
+msgg.innerHTML = "Free Research Preview. Study Buddy may produce inaccurate information about people, places, or facts. Study Buddy May 18 Version";
+document.getElementById("chat-container").appendChild(sendButton);
+document.getElementById("chat-container").appendChild(msgg);
+document.head.appendChild(styleElement);
+setTimeout(function() {
+  displayMessage("こんにちは！Study Buddyです。何か知りたいことはありますか？😊", "ai","");
+}, 300); // 3秒後に実行する
+      function checkTextbox() {
+        var textboxValue = document.getElementById("user-input").value;
+        var myImage = document.getElementById("sendi");
+        if (textboxValue === "") {
+          myImage.classList.add("faded");
+          myImage.removeAttribute("onclick");
+        } else {
+          myImage.classList.remove("faded");
+          myImage.setAttribute("onclick", "processUserInput();");
+        }
+      }
+        // チャットログを表示する要素を取得
+        const chatLog = document.getElementById("chat-log");
+        // ユーザーの入力を処理する関数
+        function processUserInput() {
+            const userInput = document.getElementById("user-input").value;
+            displayMessage(userInput, "user","");
+            showLoading();
+            let stn = 0;
+            if (csturl === 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch='){
+              // showLoading();
+              // let stn = 0;
+            }
+            searchWikipedia(userInput);
+            document.getElementById("user-input").value = "";
+            checkTextbox();
+        }
+function createDiv(index) {
+  const bubbleElements = document.createElement("div");
+  bubbleElements.classList.add("message", "ai");
+  bubbleElements.id = "aicht" + index;
+  const div = document.createElement("div"); // documentオブジェクトに対して呼び出す
+  div.id = "aidiv" + index; // id属性に連番をつける
+  // bubbleElements.appendChild(div); // div要素をbubbleElementsに追加
+  document.body.appendChild(div);
+  return div; // bubbleElementsを返す
+}
+let num = 0;
+let stn = 0;
+var b= 0;
+var respall = '';
+var jyanlu = '';
+function printAIResponse(response,index) {
+  var chars = response.split("");
+  var i = 0;
+  var interval = setInterval(function() {
+    
+    if(i < chars.length) {
+      var str = chars[i];
+      document.getElementById("aidiv" + index).innerHTML += str.replace(/\n/g, "<br>");
+      i++;
+      var chatLogs = document.getElementById("chat-log");
+      chatLogs.scrollTop = chatLogs.scrollHeight;
+    }
+    else {
+      clearInterval(interval);
+      stn++;
+      respall += response + '\n';
+      if (stn === num) {
+        hideLoading(respall,jyanlu);
+        respall = '';
+        jyanlu = '';
+      }
+    }
+  }, 1);
+}
+// メッセージをチャットログに表示する関数
+function displayMessage(message, sender) {
+    const messageElement = document.createElement("div");
+    messageElement.classList.add("message", sender);
+    const bubbleElement = document.createElement("div");
+    bubbleElement.classList.add("bubble");
+    const contentElement = document.createElement("div");
+    if (sender === "ai") {
+      num++;
+      b++;
+      contentElement.id = "aidiv" + b;
+
+      printAIResponse(message,b);
+    } else {
+      contentElement.textContent = message;
+    }
+    bubbleElement.appendChild(contentElement);
+    messageElement.appendChild(bubbleElement);
+    chatLog.appendChild(messageElement);
+    var chatLogs = document.getElementById("chat-log");
+    chatLogs.scrollTop = chatLogs.scrollHeight;
+
+  }
+        // ユーザーの入力欄でEnterキーが押されたときに処理を実行
+        document.getElementById("user-input").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                processUserInput();
+            }
+        });
+async function searchWikipedia(searchTerm) {
+		showLoading();
+    if (!gptv) {
+      var sendurl = "https://api.openai.com/v1/chat/completions";
+          var data = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+             {
+               "role": "user",
+               "content": searchTerm
+             }
+            ]
+          };  
+        } else {
+          var sendurl = "https://api.openai.com/v1/completions";
+         var data = {
+          model:'text-davinci-003',
+          prompt: `Q: ${searchTerm}\nA: `,
+          max_tokens: 2000
+         }; 
+        }
+  const response = await fetch(sendurl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(data)
+  });
+  const { choices } = await response.json();
+  if (!gptv) {
+    const content = await choices[0].message.content;
+    var str = content;
+  } else {
+    const { text } = choices[0];
+    var str = text;
+  }
+  var replacedStr = str.replace(/\n/g, "<br>");  
+  document.getElementById("loading").style.display = "none";
+  displayMessage(replacedStr,"ai");
+    }
+    function toggleCstUrl() {
+      var mainContent = document.getElementById("main").innerHTML;
+      if (csturl === alturl) {
+        csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=';
+        var updatedContent = mainContent.replace("GPT4", "GPT3.5");
+        var gptv = false;
+
+      } else {
+        csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=';
+        var updatedContent = mainContent.replace("GPT3.5", "GPT4");
+        var gptv = true;
+      }
+      document.getElementById("main").innerHTML = updatedContent;
+    }
+function showLoading() {
+  document.getElementById("loading").style.display = "block";
+}
+function hideLoading(inpd,jyanlu) {
+            var sendata = {
+                "app_id": "42119646afd848df641822a059c76893484131f6bec43d04db6a561a86296eaf",
+                "title": jyanlu,
+                "body": inpd,
+                "max_num": 10
+            };
+            $.ajax({
+                url: "https://labs.goo.ne.jp/api/keyword",
+                type: "POST",
+                data: JSON.stringify(sendata),
+                contentType: "application/json",
+                success: function(response) {
+                    var keywords = response.keywords;
+                    var keywordList = "";
+                    for (var i = 0; i < keywords.length; i++) {
+                        var keyword = Object.keys(keywords[i])[0];
+                        // keywordList += "<li>" + keyword + "</li>";
+                        if (keyword !== 'ChatWikiP') { 
+                          $.ajax({
+                            url: 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=' + keyword,
+                            type: "GET",
+                            dataType: "jsonp",
+                            success: function(datas) {
+                              // APIからのレスポンスデータを取得して表示
+                              var pages = datas.query.pages;
+                              var output = "";
+                              var hidef = false;
+                              for (var pageId in pages) {
+                                var page = pages[pageId];
+                                var title = page.title;
+                                var pageUrl = "https://ja.m.wikipedia.org/?curid=" + pageId;
+                                var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
+                                if (extract !== "") {
+                                  // 一致するページがある場合、ボタンを作成してページを表示する */
+                                  var newButton = document.createElement("button");
+                                  newButton.innerHTML = title;
+                                  newButton.classList.add('choice');
+                                  newButton.setAttribute("data-keyword", keyword);
+                                  newButton.addEventListener("click", function() {
+                                    searchWikipedia(title+"とは？");
+                                  });
+                                  chatLog.appendChild(newButton); 
+                                  chatLog.scrollTop = chatLog.scrollHeight;
+                                }
+                              }
+                              var hidef = true;
+                              if (extract === "") {
+                              }
+                            },
+                            error: function(error) {
+                              console.log("エラーが発生しました。");
+                            }
+                          });
+                        }
+                        chatLog.scrollTop = chatLog.scrollHeight;
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error:", error);
+                }
+            });
+            document.getElementById("loading").style.display = "none";
+}
+function delindex() {
+  const choiceElements = document.querySelectorAll('.choice'); // クラス名が「choice」の全ての要素を取得
+  const lastChoiceElement = choiceElements[choiceElements.length - 1]; // 最後の要素を取得
+  for (let i = 0; i < choiceElements.length - 1; i++) {
+    const choiceElement = choiceElements[i];
+    choiceElement.parentNode.removeChild(choiceElement); // 要素を削除
+  }
+  lastChoiceElement.parentNode.appendChild(lastChoiceElement); // 最後の要素を親要素に追加
+}
+    </script>
+</body>
+</html>
