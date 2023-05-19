@@ -117,7 +117,7 @@ div[id^="aidiv"]{
 </head>
 <body>
   
-  <center><h2 id="main"><img src="ei-home.png" width="18" height="18" alt="再読み込みボタン" onclick="window.location.reload();">　　GPT3.5　　<img src="ei-random.png" width="18" height="18" alt="切換えボタン" onclick="toggleCstUrl();"></h2></center>
+  <center><h2 id="main"><img src="ei-home.png" width="18" height="18" alt="再読み込みボタン" onclick="window.location.reload();">　　大賢者　　<img src="ei-random.png" width="18" height="18" alt="切換えボタン" onclick="toggleCstUrl();"></h2></center>
     <div id="chat-container">
         <div id="chat-log">
         </div>
@@ -245,8 +245,8 @@ apidel.style.zoom = 0.5;
 document.getElementById("chat-container").appendChild(apidel);*/
 document.head.appendChild(styleElement);
 setTimeout(function() {
-  displayMessage("こんにちは！Study Buddyです。\n何か知りたいことはありますか？😊", "ai","");
-}, 300); // 3秒後に実行する
+  displayMessage("告。ユーザーとの対話を開始します。", "ai");
+}, 200); // 3秒後に実行する
       function checkTextbox() {
         var textboxValue = document.getElementById("user-input").value;
         var myImage = document.getElementById("sendi");
@@ -324,8 +324,10 @@ function displayMessage(message, sender) {
       num++;
       b++;
       contentElement.id = "aidiv" + b;
-
-      printAIResponse(message,b);
+      // alert(message);
+      // speakText(message);
+      setTimeout(function(){printAIResponse(message,b);},200);
+      
     } else {
       contentElement.textContent = message;
     }
@@ -344,8 +346,30 @@ function displayMessage(message, sender) {
         });
 async function searchWikipedia(searchTerm) {
 		showLoading();
-    if (!gptv) {
+    if (csturl == 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=') {
       var sendurl = "https://api.openai.com/v1/chat/completions";
+          var data = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
+             {
+               "role": "system",
+               "content": "回答は、必ず「是。」、「否。」、「解。」、「了。」のいずれかから始めてください。 \「はい」か「いいえ」で答えられる質問には「はい」の場合は「是。」から初めて、「いいえ」の場合は「否。」から始めてください。そのあとに、理由などを冷静な口調で敬語を使わずに解説してください。 「はい」か「いいえ」で答えられない質問には「解。」から始めて、理由などを冷静な口調で敬語を使わずに解説してください。 "
+             },
+             {
+               "role": "user",
+               "content": searchTerm
+             }
+            ]
+          };  
+        } else {
+          /* GPT4 *//*
+          var sendurl = "https://api.openai.com/v1/completions";
+         var data = {
+          model:'text-davinci-003',
+          prompt: `Q: ${searchTerm}\nA: `,
+          max_tokens: 2000
+         }; */
+         var sendurl = "https://api.openai.com/v1/chat/completions";
           var data = {
             "model": "gpt-3.5-turbo",
             "messages": [
@@ -355,13 +379,6 @@ async function searchWikipedia(searchTerm) {
              }
             ]
           };  
-        } else {
-          var sendurl = "https://api.openai.com/v1/completions";
-         var data = {
-          model:'text-davinci-003',
-          prompt: `Q: ${searchTerm}\nA: `,
-          max_tokens: 2000
-         }; 
         }
   const response = await fetch(sendurl, {
     method: "POST",
@@ -379,7 +396,7 @@ async function searchWikipedia(searchTerm) {
     const { text } = choices[0];
     var str = text;
   }
-  var replacedStr = str.replace(/\n/g, "<br>");  
+  var replacedStr = str;//.replace(/<br>/g, "\n");
   document.getElementById("loading").style.display = "none";
   displayMessage(replacedStr,"ai");
     }
@@ -387,13 +404,21 @@ async function searchWikipedia(searchTerm) {
       var mainContent = document.getElementById("main").innerHTML;
       if (csturl === alturl) {
         csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=';
-        var updatedContent = mainContent.replace("GPT4", "GPT3.5");
+        var updatedContent = mainContent.replace("通常AI", "大賢者");
         var gptv = false;
+        setTimeout(function() {
+          document.getElementById("chat-log").innerHTML = "";
+          displayMessage("告。ユーザーとの対話を開始します。", "ai");
+        }, 200); // 3秒後に実行する
 
       } else {
         csturl = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=';
-        var updatedContent = mainContent.replace("GPT3.5", "GPT4");
+        var updatedContent = mainContent.replace("大賢者", "通常AI");
         var gptv = true;
+        setTimeout(function() {
+          document.getElementById("chat-log").innerHTML = "";
+          displayMessage("こんにちは、TOKI AIです。", "ai");
+        }, 200); // 3秒後に実行する
       }
       document.getElementById("main").innerHTML = updatedContent;
     }
@@ -418,49 +443,20 @@ function hideLoading(inpd,jyanlu) {
                     for (var i = 0; i < keywords.length; i++) {
                         var keyword = Object.keys(keywords[i])[0];
                         // keywordList += "<li>" + keyword + "</li>";
-                        if (keyword !== 'ChatWikiP') { 
-                          $.ajax({
-                            url: 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=' + keyword,
-                            type: "GET",
-                            dataType: "jsonp",
-                            success: function(datas) {
-                              // APIからのレスポンスデータを取得して表示
-                              var pages = datas.query.pages;
-                              var output = "";
-                              var hidef = false;
-                              for (var pageId in pages) {
-                                var page = pages[pageId];
-                                var title = page.title;
-                                var pageUrl = "https://ja.m.wikipedia.org/?curid=" + pageId;
-                                var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
-                                if (extract !== "") {
                                   // 一致するページがある場合、ボタンを作成してページを表示する */
                                   var newButton = document.createElement("button");
-                                  newButton.innerHTML = title;
+                                  newButton.innerHTML = keyword;
                                   newButton.classList.add('choice');
                                   newButton.setAttribute("data-keyword", keyword);
                                   newButton.addEventListener("click", function() {
-                                    searchWikipedia(title+"とは？");
+                                    searchWikipedia(this.getAttribute("data-keyword")+"とは？");
                                   });
                                   chatLog.appendChild(newButton); 
                                   chatLog.scrollTop = chatLog.scrollHeight;
                                 }
-                              }
-                              var hidef = true;
-                              if (extract === "") {
-                              }
-                            },
-                            error: function(error) {
-                              console.log("エラーが発生しました。");
-                            }
-                          });
-                        }
+
                         chatLog.scrollTop = chatLog.scrollHeight;
                     }
-                },
-                error: function(xhr, status, error) {
-                    console.log("Error:", error);
-                }
             });
             document.getElementById("loading").style.display = "none";
 }
@@ -473,6 +469,15 @@ function delindex() {
   }
   lastChoiceElement.parentNode.appendChild(lastChoiceElement); // 最後の要素を親要素に追加
 }
+function speakText(text) {
+      // var text = document.getElementById("textToSpeak").value;
+      
+      // SpeechSynthesisUtteranceオブジェクトを作成
+      var utterance = new SpeechSynthesisUtterance(text);
+      
+      // 音声を再生する
+      window.speechSynthesis.speak(utterance);
+    }
     </script>
 </body>
 </html>
