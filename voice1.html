@@ -18,80 +18,69 @@
   </div>
 
   <script>
-let recognition;
-const startBtn = document.getElementById('start-btn');
-const stopBtn = document.getElementById('stop-btn');
-const transcript = document.getElementById('transcript');
+    let recognition;
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const transcript = document.getElementById('transcript');
 
-// 「大賢者」と呼びかけたときに録音を開始する関数
-function startRecording() {
-  // 録音APIのサポートをチェック
-  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-    transcript.textContent = 'このブラウザは音声認識をサポートしていません。';
-    return;
-  }
-  
-  // 録音APIのインスタンスを作成
-  recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-
-  // 認識中に逐次結果を取得するように設定
-  recognition.interimResults = true;
-  
-  // 認識開始イベント
-  recognition.onstart = () => {
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
-    transcript.textContent = '音声認識中...';
-  };
-  
-  // 認識結果イベント
-  recognition.onresult = (event) => {
-    let interimTranscript = '';
-    let finalTranscript = '';
-    
-    // 認識結果を取得
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      
-      // 逐次結果と確定結果に分ける
-      if (event.results[i].isFinal) {
-        finalTranscript += transcript;
-      } else {
-        interimTranscript += transcript;
+    // 録音開始ボタンがクリックされたときの処理
+    startBtn.addEventListener('click', () => {
+      // 録音APIのサポートをチェック
+      if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+        transcript.textContent = 'このブラウザは音声認識をサポートしていません。';
+        return;
       }
-    }
-    
-    // 逐次結果を表示
-    transcript.textContent = interimTranscript;
-  };
-  
-  // 録音停止イベント
-  recognition.onend = () => {
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    transcript.textContent = '音声認識終了。';
-  };
-  
-  // 録音開始
-  recognition.start();
-}
+      
+      // 録音APIのインスタンスを作成
+      recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
-// 文字列が「大賢者」と一致したときに録音を開始
-window.addEventListener('DOMContentLoaded', () => {
-  let recognitionStarted = false;
+      // 認識中に逐次結果を取得するように設定
+      recognition.interimResults = true;
+      
+      // 認識開始イベント
+      recognition.onstart = () => {
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        transcript.textContent = '音声認識中...';
+      };
+      
+      // 認識結果イベント
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        // 認識結果を取得
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          
+          // 逐次結果と確定結果に分ける
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        // 逐次結果を表示
+        transcript.textContent = interimTranscript;
+      };
+      
+      // 録音停止イベント
+      recognition.onend = () => {
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        transcript.textContent = '音声認識終了。';
+      };
+      
+      // 録音開始
+      recognition.start();
+    });
 
-  // ユーザーの音声入力を監視
-  window.addEventListener('speechrecognition', (event) => {
-    const transcript = event.results[0][0].transcript;
-    
-    // 文字列が「大賢者」と一致したときに録音を開始
-    if (transcript.includes('大賢者') && !recognitionStarted) {
-      recognitionStarted = true;
-      startRecording();
-    }
-  });
-});
-
+    // 録音停止ボタンがクリックされたときの処理
+    stopBtn.addEventListener('click', () => {
+      // 録音停止
+      recognition.stop();
+    });
   </script>
 </body>
 </html>
