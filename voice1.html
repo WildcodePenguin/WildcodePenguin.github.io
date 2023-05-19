@@ -69,7 +69,7 @@
       recognition.onend = () => {
         startBtn.disabled = false;
         stopBtn.disabled = true;
-        transcript.textContent = finalTranscript;
+        transcript.textContent = '音声認識終了。最終結果: ' + transcript.textContent;
       };
       
       // 録音開始
