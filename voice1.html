@@ -1,0 +1,73 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>音声自動文字起こし</title>
+</head>
+<body>
+  <h1>音声自動文字起こし</h1>
+  <p>マイクボタンを押して話してください。話し終わったらもう一度押してください。</p>
+  <button id="mic">マイク</button>
+  <div id="result"></div>
+  <script>
+    // Web Speech APIが利用できるかチェック
+    if (!window.SpeechRecognition) {
+      alert("このブラウザではWeb Speech APIが利用できません。");
+    } else {
+      // SpeechRecognitionオブジェクトを作成
+      var recognition = new SpeechRecognition();
+      // 言語を日本語に設定
+      recognition.lang = "ja-JP";
+      // 連続的に認識するかどうか
+      recognition.continuous = true;
+      // 中間結果を返すかどうか
+      recognition.interimResults = true;
+
+      // マイクボタンの要素を取得
+      var mic = document.getElementById("mic");
+      // 認識中かどうかのフラグ
+      var isRecognizing = false;
+      // 認識結果を表示する要素を取得
+      var result = document.getElementById("result");
+
+      // マイクボタンがクリックされたときの処理
+      mic.addEventListener("click", function() {
+        // 認識中でなければ認識を開始
+        if (!isRecognizing) {
+          recognition.start();
+          isRecognizing = true;
+          mic.textContent = "停止";
+        } else {
+          // 認識中なら認識を停止
+          recognition.stop();
+          isRecognizing = false;
+          mic.textContent = "マイク";
+        }
+      });
+
+      // 認識が開始されたときの処理
+      recognition.addEventListener("start", function() {
+        console.log("認識開始");
+      });
+
+      // 認識が終了されたときの処理
+      recognition.addEventListener("end", function() {
+        console.log("認識終了");
+      });
+
+      // 認識結果が得られたときの処理
+      recognition.addEventListener("result", function(event) {
+        // 結果の配列を取得
+        var results = event.results;
+        // 結果の文字列を格納する変数
+        var text = "";
+        // 結果の配列をループして文字列に連結
+        for (var i = event.resultIndex; i < results.length; i++) {
+          text += results[i][0].transcript;
+        }
+        // 結果を表示する要素にセット
+        result.textContent = text;
+      });
+    }
+  </script>
+</body>
+</html>
