@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>天気情報</title>
+  <!--Jqueryライブラリの読み込み-->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    .forecast-item {
+      display: inline-block;
+      vertical-align: top;
+      margin-right: 20px;
+      margin-bottom: 20px;
+      zoom: 2;
+    }
+    h2 {
+      margin-top: 20px;
+    }
+    .umi {
+      color:#ff5500;
+      font-size: 22px;
+    }
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+    }
+    .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60px;
+      height: 60px;
+      margin: -30px 0 0 -30px;
+      border-radius: 50%;
+      border: 5px solid #fff;
+      border-top-color: #000;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .blinking{
+	    -webkit-animation:blink 0.4s ease-in-out infinite alternate;
+      -moz-animation:blink 0.4s ease-in-out infinite alternate;
+      animation:blink 0.4s ease-in-out infinite alternate;
+    }
+    @-webkit-keyframes blink{
+      0% {opacity:0;}
+      100% {opacity:1;}
+    }
+    @-moz-keyframes blink{
+      0% {opacity:0;}
+      100% {opacity:1;}
+    }
+    @keyframes blink{
+      0% {opacity:0;}
+      100% {opacity:1;}
+    }
+    rt {
+      zoom:0.5;
+    }
+  </style>
+</head>
+<body bgcolor="#52adcc" onload="getLocation();">
+  <div style="zoom:8;"><center>
+    <ruby>海の王<rt>ポセイドン</rt></ruby></center>
+  </div>
+  <input type="text" id="cityInput" placeholder="都市名を入力してください" value="aomori" style="display: none;">
+  <button onclick="getLocation()" style="display: none;">位置情報を取得</button>
+  <button onclick="getWeather()" style="display: none;">検索</button>
+  <div id="weatherInfo" style="zoom:2.5;"></div>
+  <div id="forecastContainer"></div>
+  <div id="forecastInfo"></div>
+  <div id="loading" style="display:none;">
+    <div class="spinner"></div>
+  </div>
+  <h5 id="gotos" style="zoom:1.6;" class="blinking">自動的に最新のページに移動します。</h5><h5 id="goto" style="display:none;zoom:1.6;">まもなく転移します。</h5>
+  <script>
+    function paintfish(numArgs) {
+      // HTML上に画像を表示
+      var seisu = Math.floor(numArgs);
+      var syousu = Math.floor(numArgs * 10) % 10
+      for (var i = 0; i < seisu; i++) {
+        document.getElementById("mebarun").innerHTML += '<img src="mebaru.png" width="32" style="display:none;" class="mebarup"></img>';
+      }
+      for (var i = 0; i < syousu; i++) {
+        document.getElementById("mebarun").innerHTML += '<img src="mebaru-mini2.png" width="22" style="display:none;vertical-align: middle;" class="mebarup"></img>';
+      }
+    }
+function calculateWindSpeed(windSpeed, degree) {
+  var windDirection = getWindDirection(degree);
+  if (windDirection === '南' || windDirection === '南西' || windDirection === '西') {
+    return 100 - 5 * windSpeed;
+  } else if (windDirection === '北' || windDirection === '北東' || windDirection === '東') {
+    if (windSpeed < 3) {
+      return 100 - 5 * windSpeed;
+    } else {
+      return 100 - 5 * windSpeed - 50;
+    }
+  } else if (windDirection === '南東' || windDirection === '北西') {
+    var wsTrue = 100 - 5 * windSpeed;
+    var wsFalse = 100 - 5 * windSpeed - 50;
+    return (wsTrue + wsFalse) / 2;
+  } else {
+    // エラーハンドリング: その他の風向きの場合
+    return '無効な風向き';
+  }
+}
+        function showGraph(prg1) {
+            var progressBar1 = document.getElementById("mebap");
+            var intervalId = setInterval(function() {
+                if (progressBar1.value >= prg1){
+                    clearInterval(intervalId);
+                    return;
+                }
+                if (progressBar1.value < prg1) {
+                    progressBar1.value++;
+                }
+            }, 10);
+        }
+function showLoading() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("goto").style.display = "block";
+  document.getElementById("gotos").style.display = "none";
+}
+function hideLoading() {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("goto").style.display = "none";
+  document.getElementById("gotos").style.display = "block";
+}
+function getmebarun() {
+  document.getElementById("mebarun").style.display = "block";
+  var elements = document.getElementsByClassName('mebarup');
+      var delay = 10; // ミリ秒単位の遅延時間（1秒）
+      for (var i = 0; i < elements.length; i++) {
+        (function(index) {
+          setTimeout(function() {
+            elements[index].style.display = 'inline';
+          }, delay * (index + 1));
+        })(i);
+      }
+}
+var protocol = window.location.protocol;
+if (protocol === "http:") {
+  console.log("This page is using HTTP protocol.");
+  setTimeout(function() {
+    showLoading();
+    setTimeout("location.href='https://37cb-240a-61-31e2-ab08-678b-a58e-6a1e-8ed9.ngrok-free.app/Poseidon.html'",750)
+  }, 3000);
+} else if (protocol === "https:") {
+  console.log("This page is using HTTPS protocol.");
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("goto").style.display = "none";
+  document.getElementById("gotos").style.display = "none";
+} else {
+  console.log("Unknown protocol.");
+}
+async function getTideData(year, month, day) {
+  const url = `https://tide736.net/api/get_tide.php?pc=2&hc=4&yr=${year}&mn=${month}&dy=${day}&rg=day`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    const date = `${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+    const chartData = data.tide.chart[date];
+    const eddData = chartData.edd;
+    const eddList = Object.keys(eddData).map((key) => {
+      const item = eddData[key];
+      const cm = item.cm;
+      const time = item.time;
+      return `${time} (${cm}cm)`;
+    });
+    const floodData = chartData.flood;
+    const floodList = Object.keys(floodData).map((key) => {
+      const item = floodData[key];
+      const cm = item.cm;
+      const time = item.time;
+      return `${time} (${cm}cm)`;
+    });
+    var eddresult = eddList.join(", ");
+    var floodresult = floodList.join(", ");
+    const eddvars = "干潮: " + eddresult;
+    const floodvars = "満潮: " + floodresult;
+    document.getElementById(date).innerHTML = eddvars+"<BR>"+floodvars;
+    console.log(eddvars);
+    console.log(floodvars);
+    return eddList;
+  } catch (error) {
+    console.error("Error:", error);
+    return null;
+  }
+}
+    function getWeather(ido,keido) {
+      var apiKey = '3a73c79b6f773670f200e88ae4c46c7d'; // OpenWeatherMap APIキーを入力してください
+      var apiUrl = 'https://api.openweathermap.org/data/2.5/weather?lat='+ido+'&lon='+keido+ '&lang=ja&units=metric&appid=' + apiKey;
+      var apiUrl2 = 'https://api.openweathermap.org/data/2.5/forecast?lat='+ido+'&lon='+keido+ '&lang=ja&units=metric&appid=' + apiKey;
+      $.getJSON(apiUrl, function(data) {
+        // var weatherDescription = data.weather[0].main; //簡易的な情報
+        var temperature = data.main.temp;
+        var celsiusTemperature = temperature - 273.15; // ケルビンから摂氏に変換
+        var feelsLike = data.main.feels_like;
+        var celsiusFeelsLike = feelsLike - 273.15; // ケルビンから摂氏に変換
+        var weatherDescription = data.weather[0].description;
+        var forecastData = data.forecast; // 1時間ごとの予報データ
+        var humidity = data.main.humidity;
+        var windSpeed = data.wind.speed;
+        var windDegree = data.wind.deg;
+        var windDirection = getWindDirection(windDegree);
+        var tempMax = data.main.temp_max;
+        var celsiusTempMax = tempMax - 273.15; // 最高気温を摂氏に変換
+        var tempMin = data.main.temp_min;
+        var celsiusTempMin = tempMin - 273.15; // 最低気温を摂氏に変換
+        var pressure = data.main.pressure; // 大気圧
+        var sunriseTimestamp = data.sys.sunrise; // 日の出時刻 (UNIXタイムスタンプ)
+        var sunsetTimestamp = data.sys.sunset; // 日の入り時刻 (UNIXタイムスタンプ)
+        var weatherIconCode = data.weather[0].icon; // 天候のアイコンコード
+        var weatherIconUrl = 'http://openweathermap.org/img/w/' + weatherIconCode + '.png'; // アイコンのURL
+        // 大気圧をhPa単位に変換
+        var pressureHpa = pressure;
+        // 日の出時刻を変換して表示用のフォーマットに変換
+        var sunrise = new Date(sunriseTimestamp * 1000);
+        var sunriseTime = sunrise.toLocaleTimeString();
+        // 日の入り時刻を変換して表示用のフォーマットに変換
+        var sunset = new Date(sunsetTimestamp * 1000);
+        var sunsetTime = sunset.toLocaleTimeString();
+        var dtTimestamp = data.dt; // 日時 (UNIXタイムスタンプ)
+        var dt = new Date(dtTimestamp * 1000);
+        var dtString = dt.toLocaleString(); // ローカルの日時表現に変換
+        var cityName = data.name; // 都市名を取得
+        var mebapoint = calculateWindSpeed(windSpeed, windDegree);
+        var weatherInfo = '<h4>現在の '+cityName +' の天気</h4><h5>' + dtString + '</h5>' +'<button onclick="getmebarun();">メバルポイントを算出する</button><div id="mebarun" style="display:none;"><h3>総合評価：'+mebapoint.toFixed(2)+'</h3></div><img src="' + weatherIconUrl + '" alt="天候アイコン" style="zoom:3;"><br>天候:'+ weatherDescription  + '<BR>' +
+          '<font color="#ff33bb">気温: ' + temperature.toFixed(2) + ' ℃</font><br>' +
+          '<font color="#268044">体感温度: ' + feelsLike.toFixed(2) + ' ℃</font><br>' +
+          '<font color="#ff0000">最高気温: ' + tempMax.toFixed(2) + ' ℃</font><br>' +
+          '<font color="#0000ff">最低気温: ' + tempMin.toFixed(2) + ' ℃</font><br>' +
+          '湿度: ' + humidity + '%<br>' +
+          '<font color="#7700b3">風速: ' + windSpeed + ' m/s</font><br>' +
+          '<font color="#7700b3">風向き: ' + windDirection + '</font><br>' +
+          '大気圧: ' + pressureHpa + ' hPa<br>' +
+          '日の出: ' + sunriseTime + '<br>' +
+          '日の入り: ' + sunsetTime + '<br>';
+        document.getElementById('weatherInfo').innerHTML = weatherInfo;
+        paintfish(mebapoint);
+      });
+      $.getJSON(apiUrl2, function(data2) {
+        var forecastList = data2.list;
+        var forecastContainer = document.getElementById('forecastContainer');
+        var forecastInfo = '';
+        var currentDate = null;
+        for (var i = 0; i < forecastList.length; i++) {
+          var forecastData = forecastList[i];
+          var forecastTimestamp = forecastData.dt;
+          var forecastDate = new Date(forecastTimestamp * 1000);
+          // 日付に基づいて「きょう」「あした」「あさって」「しあさって」「n日後」を計算
+          var today = new Date();
+          today.setHours(0, 0, 0, 0);
+          var dayDifference = Math.floor((forecastDate - today) / (1000 * 60 * 60 * 24));
+          var dayLabel = '';
+          if (dayDifference === 0) {
+            dayLabel = '〔きょう〕';
+          } else if (dayDifference === 1) {
+            dayLabel = '〔あした〕';
+          } else if (dayDifference === 2) {
+            dayLabel = '〔あさって〕';
+          } else if (dayDifference === 3) {
+            dayLabel = '〔しあさって〕';
+          } else {
+            dayLabel = '〔' + dayDifference + '日後〕';
+          }
+          // 曜日を取得
+          var daysOfWeek = ['日', '月', '火', '水', '木', '金', '土'];
+          var dayOfWeek = daysOfWeek[forecastDate.getDay()];
+          // 日付が変わった場合、見出しを追加
+          if (currentDate === null || currentDate.toDateString() !== forecastDate.toDateString()) {
+            const year = forecastDate.getFullYear(); // 年を取得
+            const month = forecastDate.getMonth() + 1; // 月を取得（0から11で表されるため、1を加算）
+            const day = forecastDate.getDate(); // 日を取得
+            getTideData(year, month,day);
+            forecastInfo += '<h2>' + forecastDate.toLocaleDateString() + dayLabel+dayOfWeek+'曜日'+'</h2><div class="umi" id="'+`${year}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`+'"></div><img src="https://api.tide736.net/tide_image.php?pc=2&hc=4&yr='+year+'&mn='+month+'&dy='+day+'&rg=day&w=896&h=512&lc=blue&gcs=cyan&gcf=blue&ld=on&ttd=on&tsmd=on"><BR>';
+            currentDate = forecastDate;
+          }
+          // 予報の表示内容を追加
+          var forecastTemperature = forecastData.main.temp;
+          var feelsLike = forecastData.main.feels_like;
+          var humidity = forecastData.main.humidity;
+          var windSpeed = forecastData.wind.speed;
+          var windDegree = forecastData.wind.deg;
+          var windDirection = getWindDirection(windDegree);
+          var forecastWeatherDescription = forecastData.weather[0].description;
+          var forecastWeatherIconCode = forecastData.weather[0].icon;
+          var forecastWeatherIconUrl = 'http://openweathermap.org/img/w/' + forecastWeatherIconCode + '.png';
+          forecastInfo += '<div class="forecast-item">' +
+            '<div class="forecast-date">' + forecastDate.toLocaleTimeString() + '</div>' +
+            '<div class="forecast-icon"><img src="' + forecastWeatherIconUrl + '" alt="予報天候アイコン"></div>' +
+            '<div class="forecast-description">' + forecastWeatherDescription + '</div>' +
+            '<div class="forecast-temperature"><font color="#ff33bb">' +
+            forecastTemperature.toFixed(2) + ' ℃</font><br>' +
+            humidity + '%<br><font color="#7700b3">' +
+            '風速: ' + windSpeed + ' m/s<BR>風向: ' + windDirection + 
+            '</font></div>' +
+            '</div>';
+        }
+        forecastContainer.innerHTML = forecastInfo;
+        document.getElementById("loading").style.display = "none";
+      });
+    }
+// 風向きを数値からテキスト表現に変換する関数
+function getWindDirection(degree) {
+  var directions = ['北', '北東', '東', '南東', '南', '南西', '西', '北西'];
+  var index = Math.round(degree / 45) % 8;
+  return directions[index];
+}
+function getLocation() {
+  document.getElementById("loading").style.display = "block";
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(showPosition);
+  } else {
+    alert("お使いのブラウザは位置情報取得に対応していません。");
+  }
+}
+function showPosition(position) {
+  var latitude = position.coords.latitude;
+  var longitude = position.coords.longitude;
+  getWeather(latitude,longitude);
+}
+  </script>
+</body>
+</html>

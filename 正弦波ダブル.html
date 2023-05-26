@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>正弦波の再生</title>
+</head>
+<body style="zoom: 3.25;">
+  <h1>正弦波の再生</h1>
+  <label for="frequency1">周波数1（ラの音）</label><BR>
+  <input type="number" id="frequency1" min="20" max="20000" step="1" value="440">Hz<BR>
+  <button onclick="playSineWave(1)">再生1</button>
+  <button onclick="stopSineWave(1)">停止1</button><output id="music1"></output><hr>
+  <label for="frequency2">周波数2（半音の8分の1上げた音）</label><BR>
+  <input type="number" id="frequency2" min="20" max="20000" step="1" value="443">hz<BR>
+  <button onclick="playSineWave(2)">再生2</button>
+  <button onclick="stopSineWave(2)">停止2</button><output id="music2"></output>
+  <hr>
+  <button onclick="playSineWaves()">同時再生</button>
+  <button onclick="stopSineWaves()">停止</button>
+
+  <script>
+    var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    var oscillators = [];
+
+    function playSineWaves() {
+      var frequencyInput1 = document.getElementById("frequency1");
+      var frequencyInput2 = document.getElementById("frequency2");
+      var frequency1 = parseFloat(frequencyInput1.value);
+      var frequency2 = parseFloat(frequencyInput2.value);
+
+      if (!oscillators[0] && !oscillators[1]) {
+        oscillators[0] = audioContext.createOscillator();
+        oscillators[0].type = 'sine';
+        oscillators[0].frequency.value = frequency1;
+        oscillators[0].connect(audioContext.destination);
+        oscillators[0].start();
+        document.getElementById("music1").innerHTML = '<font size="5"> ♪ </font><font size="2">再生中</font>';
+        document.getElementById("music2").innerHTML = '<font size="5"> ♪ </font><font size="2">再生中</font>';
+        oscillators[1] = audioContext.createOscillator();
+        oscillators[1].type = 'sine';
+        oscillators[1].frequency.value = frequency2;
+        oscillators[1].connect(audioContext.destination);
+        oscillators[1].start();
+      }
+    }
+
+    function stopSineWaves() {
+      if (oscillators[0]) {
+        oscillators[0].stop();
+        oscillators[0].disconnect();
+        oscillators[0] = null;
+        document.getElementById("music1").innerHTML = '';
+      }
+
+      if (oscillators[1]) {
+        oscillators[1].stop();
+        oscillators[1].disconnect();
+        oscillators[1] = null;
+        document.getElementById("music2").innerHTML = '';
+      }
+    }
+    function playSineWave(index) {
+      var frequencyInput = document.getElementById("frequency" + index);
+      var frequency = parseFloat(frequencyInput.value);
+
+      if (!oscillators[index]) {
+        oscillators[index] = audioContext.createOscillator();
+        oscillators[index].type = 'sine';
+        oscillators[index].frequency.value = frequency;
+        oscillators[index].connect(audioContext.destination);
+        oscillators[index].start();
+        document.getElementById("music"+index).innerHTML = '<font size="5"> ♪ </font><font size="2">再生中</font>';
+      }
+    }
+
+    function stopSineWave(index) {
+      if (oscillators[index]) {
+        oscillators[index].stop();
+        oscillators[index].disconnect();
+        oscillators[index] = null;
+        document.getElementById("music"+index).innerHTML = '';
+      }
+    }
+  </script>
+</body>
+</html>
