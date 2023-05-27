@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>What3Words API</title>
+  <style>
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 9999;
+    }
+    .spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60px;
+      height: 60px;
+      margin: -30px 0 0 -30px;
+      border-radius: 50%;
+      border: 5px solid #fff;
+      border-top-color: #000;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .blinking{
+	    -webkit-animation:blink 0.4s ease-in-out infinite alternate;
+      -moz-animation:blink 0.4s ease-in-out infinite alternate;
+      animation:blink 0.4s ease-in-out infinite alternate;
+    }
+    @-webkit-keyframes blink{
+      0% {opacity:0;}
+      100% {opacity:1;}
+    }
+    @-moz-keyframes blink{
+      0% {opacity:0;}
+      100% {opacity:1;}
+    }
+    @keyframes blink{
+      0% {opacity:0;}
+      100% {opacity:1;}
+    }
+  </style>
+</head>
+<body>
+  <h1>What3Words API</h1>
+  <label for="latitude">緯度:</label>
+  <input type="text" id="latitude" name="latitude">
+  <br>
+  <label for="longitude">経度:</label>
+  <input type="text" id="longitude" name="longitude">
+  <button onclick="getLocation();">今の場所を適用</button>
+  <br>
+    <label for="language">言語:</label>
+  <select id="language" name="language">
+    <option value="ja">日本語</option>
+    <option value="en">English</option>
+    <option value="cn">中文</option>
+  </select>
+  <br>
+  <button onclick="convertTo3WA()">変換</button>
+  <br>
+  <div id="loading" style="display:none;">
+    <div class="spinner"></div>
+  </div>
+  <div id="result"></div>
+
+  <script>
+    function convertTo3WA() {
+      var latitude = document.getElementById("latitude").value;
+      var longitude = document.getElementById("longitude").value;
+      var language = document.getElementById("language").value;
+      var apiKey = "[ここにAPIキーを入力]";
+
+      var url = "https://api.what3words.com/v3/convert-to-3wa?coordinates=" + latitude + "%2C" + longitude + "&key=" + apiKey + "&language=" + language;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          var words = data.words;
+          document.getElementById("result").innerText = "3ワード: " + words;
+        })
+        .catch(error => {
+          console.error("エラー:", error);
+          document.getElementById("result").innerText = "エラーが発生しました。";
+        });
+    }
+function getLocation() {
+  document.getElementById("loading").style.display = "block";
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(showPosition);
+  } else {
+    alert("お使いのブラウザは位置情報取得に対応していません。");
+  }
+}
+function showPosition(position) {
+  var latitude = position.coords.latitude;
+  var longitude = position.coords.longitude;
+  document.getElementById("latitude").value = latitude;
+  document.getElementById("longitude").value = longitude;
+  // getWeather(latitude,longitude);
+}
+  </script>
+</body>
+</html>
