@@ -49,20 +49,23 @@
     width: 400px; /* 地図の幅 */
     height: 300px; /* 地図の高さ */
   }
-
+/*
   #pin {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -100%);
-    width: 40px; /* ピンの幅 */
-    height: 40px; /* ピンの高さ */
-    background-image: url("pin.png"); /* ピンの画像 */
+    width: 40px;
+    height: 40px;
+    background-image: url("pin.png");
     background-size: cover;
-  }
+  }*/
+iframe{
+  pointer-events:none;
+}
   </style>
 </head>
-<body style="zoom:2.5;">
+<body style="zoom: 2.5;">
   <h1>What3Words API</h1>
   <label for="latitude">緯度:</label>
   <input type="text" id="latitude" name="latitude">
@@ -89,7 +92,7 @@
   <div id="result"></div>
   <button onclick="copyResult()" id="copys" style="display: none;">結果をコピー</button>
   <div id="map">
-    <div id="pin" style="display: none;"></div>
+    <!--<div id="pin" style="display: none;"></div>-->
   </div>
   <script>
     function copyResult() {
@@ -117,11 +120,10 @@
           var words = data.words;
           document.getElementById("result").innerText = words;
           document.getElementById("copys").style.display = "block";
-          var mapUrl = 'https://maps.google.com/maps?output=embed&q='+longitude+','+latitude+'&t=m&hl=ja&z=18&t=h';
+          var mapUrl = 'https://maps.google.com/maps?output=embed&q='+latitude+','+longitude+'&t=m&hl=ja&z=16&t=h';
+          document.getElementById("map").innerHTML = '<iframe width="400" height="300" frameborder="0" style="border:0" src="' + mapUrl + '" allowfullscreen></iframe>';
           // var mapUrl = "https://www.google.com/maps/embed?t=h&hl=ja&pb=!1m18!1m12!1m3!1d0.0000000000000001!2d" + longitude + "!3d" + latitude + "!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU3JzIwLjkiTiAxMzlcMTUzLjEzNjE!5e0!3m2!1sen!2sus!4v1622135411744!5m2!1sen!2sus";
           // var embedtag = '<iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3015.8226996095204!2d'+longitude + '!3d' + latitude + '!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zNDDCsDUzJzUxLjciTiAxNDDCsDM3JzM4LjYiRQ!5e0!3m2!1sja!2sjp!4v1685177906557!5m2!1sja!2sjp" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>';
-          var mapElement = document.getElementById("map");
-          mapElement.outerHTML = '<div id="map"><iframe width="400" height="300" frameborder="0" style="border:0" src="' + mapUrl + '" allowfullscreen></iframe><div id="pin" style="display:none;"></div></div>';
         })
         .catch(error => {
           console.error("エラー:", error);
