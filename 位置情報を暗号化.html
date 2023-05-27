@@ -83,15 +83,16 @@ iframe{
     <option value="it">イタリア語</option>
   </select>
   <br>
-  <button onclick="convertTo3WA()">変換</button>
+  <button onclick="convertTo3WA()">変換</button><div style="line-height:1;">
   <br>
   <div id="loading" style="display:none;">
     <div class="spinner"></div>
   </div>
-  <div id="gps"></div>
+  おおよその位置：<div id="gps"></div>
   <h4>暗号化済みキーワード</h4>
   <div id="result"></div>
   <button onclick="copyResult()" id="copys" style="display: none;">結果をコピー</button>
+</div>
   <div id="map">
     <!--<div id="pin" style="display: none;"></div>-->
   </div>
