@@ -74,7 +74,7 @@
       var latitude = document.getElementById("latitude").value;
       var longitude = document.getElementById("longitude").value;
       var language = document.getElementById("language").value;
-      var apiKey = "[ここにAPIキーを入力]";
+      var apiKey = "9DYD85JS";
 
       var url = "https://api.what3words.com/v3/convert-to-3wa?coordinates=" + latitude + "%2C" + longitude + "&key=" + apiKey + "&language=" + language;
 
@@ -94,6 +94,7 @@ function getLocation() {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(showPosition);
   } else {
+    document.getElementById("loading").style.display = "none";
     alert("お使いのブラウザは位置情報取得に対応していません。");
   }
 }
@@ -102,6 +103,7 @@ function showPosition(position) {
   var longitude = position.coords.longitude;
   document.getElementById("latitude").value = latitude;
   document.getElementById("longitude").value = longitude;
+　document.getElementById("loading").style.display = "none";
   // getWeather(latitude,longitude);
 }
   </script>
