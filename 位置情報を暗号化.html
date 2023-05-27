@@ -59,7 +59,9 @@
   <select id="language" name="language">
     <option value="ja">日本語</option>
     <option value="en">English</option>
-    <option value="cn">中文</option>
+    <option value="zh_tr">中文</option>
+    <option value="ar">アラビア語</option>
+    <option value="it">イタリア語</option>
   </select>
   <br>
   <button onclick="convertTo3WA()">変換</button>
@@ -103,7 +105,7 @@ function showPosition(position) {
   var longitude = position.coords.longitude;
   document.getElementById("latitude").value = latitude;
   document.getElementById("longitude").value = longitude;
-　document.getElementById("loading").style.display = "none";
+  document.getElementById("loading").style.display = "none";
   // getWeather(latitude,longitude);
 }
   </script>
