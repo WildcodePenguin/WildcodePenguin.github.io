@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>近いバス停</title>
+    <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>-->
+    <style>
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+      }
+      .spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 60px;
+        margin: -30px 0 0 -30px;
+        border-radius: 50%;
+        border: 5px solid #fff;
+        border-top-color: #000;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .blinking{
+	      -webkit-animation:blink 0.4s ease-in-out infinite alternate;
+        -moz-animation:blink 0.4s ease-in-out infinite alternate;
+        animation:blink 0.4s ease-in-out infinite alternate;
+      }
+      @-webkit-keyframes blink{
+        0% {opacity:0;}
+        100% {opacity:1;}
+      }
+      @-moz-keyframes blink{
+        0% {opacity:0;}
+        100% {opacity:1;}
+      }
+      @keyframes blink{
+        0% {opacity:0;}
+        100% {opacity:1;}
+      }
+      a {
+        font-size: 16px; /* 文字サイズ */
+      }
+      a:link {
+        color: blue; /* 未読リンクの色 */
+      }
+      a:visited {
+        color: blue; /* 既読リンクの色も青にする */
+      }
+      a:hover {
+        color: red; /* ホバー時の色 */
+      }
+      a:active {
+      color: green; /* クリック時の色 */
+      }/*
+      #map {
+        display: none;
+      }*/
+      .container {
+      background-color: black;
+      width: 300px;
+      height: 200px;
+      position: relative;
+    }
+    
+    .top-left {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      font-size: 24px;
+      color: white;
+    }
+    
+    .center {
+      position: absolute;
+      top: 50%;
+      left:50%;
+      text-align: left;
+      transform: translate(-50%, -50%);
+      font-size: 28px;
+      color: white;
+      /* width: 300px; /* サイズを変更 */
+    }
+
+    
+    .rounded-box {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      width: 50px;
+      height: 30px;
+      border-radius: 10px;
+      background-color: black;
+      border: 2px solid white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      color: white;
+    }
+    .rounded-box2 {
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      width: 130px;
+      height: 30px;
+      border-radius: 10px;
+      background-color: black;
+      border: 2px solid white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      color: white;
+    }
+    </style>
+  </head>
+  <body style="zoom:3;" onload="fetchBookData();"><img src="ei-random.png" width="18" height="18" alt="切換えボタン" onclick="toggleShowdiv();">
+    <div style="display: none;">
+    補正量：<input type="range" id="degreeSlider" min="0.25" max="7.5" step="0.25" value="2.75" oninput="updateResult()"><span id="degreeValue">2.75m</span></div>
+    <div class="container" id="main" style="display: none;">
+      <div class="top-left">次は</div>
+      <div class="center" id="here1">不明</div>
+      <div class="rounded-box2" id="here2">？m</div>
+      <div class="rounded-box">
+        <script>
+          function updateTime() {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var timeString = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
+            document.getElementById('clock').textContent = timeString;
+          }
+          
+          setInterval(updateTime, 1000);
+        </script>
+        <span id="clock"></span>
+      </div>
+    </div>
+      <div id="else">
+        <h1 id="tt">現在地に近いバス停</h1>
+        <ul id="locationList"></ul>
+        <p id="currentLocation"></p>
+      </div>
+    <div id="progress-container">
+      <div id="progress-message"></div>
+      <progress id="progress-bar" value="0" max="100"></progress>
+    </div><!--<button onclick="openMapInNewTab()" id="newmap" style="display: none;">地図を新しいタブで開く</button>
+    <div id="map" style="width: 100%; height: 400px;"></div>-->
+    <div id="loading" style="display:none;">
+      <div class="spinner"></div>
+    </div>
+    <script>
+    function updateResult() {
+      var degreeSlider = document.getElementById('degreeSlider');
+      var degree = parseFloat(degreeSlider.value);
+      document.getElementById('degreeValue').textContent = degree.toFixed(2)+'m';
+    }
+    let locations = [];
+    const measurementCount = 5;
+    // stops.txtからデータを読み込んでlocations配列にまとめる
+    async function fetchBookData() {
+      // var maps = makemap(40.851712, 140.762071,11);
+      // URLSearchParamsオブジェクトを作成し、引数を取得
+      const searchParams = new URLSearchParams(window.location.search)
+      // alert(searchParams.get('stopid'))  //=> '100'
+      const response = await fetch("stops.txt");
+      const data = await response.text();
+      const response2 = await fetch("stop_times.txt");
+      const data2 = await response2.text();
+      const lines = data.trim().split('\n');
+      const lines2 = data2.trim().split('\n');
+      locations = [];
+      if (searchParams.has('stopid')==false) {
+        var startTime = new Date().getTime();
+        for (let i = 1; i < lines.length; i++) {
+          const columns = lines[i].split(',');
+          let prename = columns[1].trim();
+          let name = columns[2].trim(); // バス停名
+          /*
+          if (prename === '') {
+            const stopId = columns[0].split('_')[1];
+            name = columns[2].trim() + stopId; // 空データの場合は2列目 + 1列目の数字
+          }
+          */
+          const stopId = columns[0].trim();
+          const index = stopId.indexOf('_');
+          const stopId1 = stopId.slice(0, index);
+          const stopId2 = stopId.split('_')[1];
+          const paddedNumber = stopId2.toString().padStart(3, '0');
+          const latitude = parseFloat(columns[4].trim()); // 緯度
+          const longitude = parseFloat(columns[5].trim()); // 経度
+          // makepoint(latitude,longitude,name,maps);
+          const timeurl = "https://aomoricitybus.com/time/T/"+stopId1+".files/sheet"+paddedNumber+".html";
+          const location = { name, latitude, longitude , stopId,timeurl};
+          locations.push(location);
+          // console.log(location);
+          await new Promise(resolve => setTimeout(resolve, 1));
+          updateProgress(i + 1, lines.length, name,"");
+        }
+        // console.log("データの取得が完了しました。");
+        updateProgress(lines.length, lines.length, "","");
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("progress-container").style.display = "none";
+        // document.getElementById("newmap").style.display = "block";
+      }
+
+      setInterval(updateLocation,300);
+    }
+    let sortedLocationsold = [];
+    let measurements = []; // 測定結果の配列
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6378137; // 地球の半径（メートル）
+      const dLat = degToRad(lat2 - lat1);
+      const dLon = degToRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(degToRad(lat1)) * Math.cos(degToRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = R * c;
+      return distance;
+    }
+    function degToRad(degrees) {
+      return degrees * (Math.PI / 180);
+    }
+    function updateLocation() {
+      if (navigator.geolocation) {
+        // 測定回数が足りていない場合は位置情報の取得を継続
+        if (measurements.length < measurementCount) {
+          document.getElementById("tt").style.color = "#000000";
+          const options = {
+            enableHighAccuracy: true
+          };
+          navigator.geolocation.getCurrentPosition(recordMeasurement, handleError, options);
+        } else {
+          showClosestLocations();
+        }
+      } else {
+        alert("このブラウザは位置情報の取得に対応していません。");
+      }
+    }
+    function recordMeasurement(position) {
+      const currentLatitude = position.coords.latitude;
+      const currentLongitude = position.coords.longitude;
+      measurements.push({ latitude: currentLatitude, longitude: currentLongitude});
+      // 測定回数が足りている場合は位置情報の取得を停止
+      if (measurements.length === measurementCount) {
+        // document.getElementById("loading").style.display = "none";
+        showClosestLocations();
+      }
+    }
+    function handleError(error) {
+      alert("位置情報の取得に失敗しました。エラーコード: " + error.code + ", エラーメッセージ: " + error.message);
+    }
+
+    async function showClosestLocations() {
+
+      // 測定結果の平均値を計算
+      let averageLatitude = 0;
+      let averageLongitude = 0;
+      measurements.forEach(measurement => {
+        averageLatitude += measurement.latitude;
+        averageLongitude += measurement.longitude;
+      });
+      averageLatitude /= measurementCount;
+      averageLongitude /= measurementCount;
+      // 距離の計算とソート
+      const sortedLocationsm = locations.map(location => {
+        const distance = calculateDistance(
+          averageLatitude,
+          averageLongitude,
+          location.latitude,
+          location.longitude
+        );
+        return {
+          name: location.name,
+          distance: distance,
+          stopId: location.stopId,
+          latitude :location.latitude,
+          longitude :location.longitude
+        };
+      });
+      const sortedLocations = sortedLocationsm.sort((a, b) => a.distance - b.distance);
+      if (sortedLocationsold.length === 0 || !sortedLocationsold[0].distance) {
+        // sortedLocationsoldが空の場合の処理
+
+        document.getElementById("tt").style.color = "#1a73e8";
+        farmeter = "";
+      } else {
+
+        for (let i = sortedLocationsm.length - 1; i > 0; i--) {
+          docount = document.getElementById('degreeSlider').value;
+          const farmeter = sortedLocationsm[i].distance - sortedLocationsold[i].distance;
+          if (farmeter > docount) {
+            document.getElementById('degreeValue').innerHTML += '<br>'+farmeter.toFixed(2) + 'm移動した'
+            sortedLocationsm.splice(i, 1);
+          }
+        }
+
+
+      // 上位3つの場所を表示
+      const locationList = document.getElementById("locationList");
+      locationList.innerHTML = ""; // 一旦リストをクリア
+      for (let i = 0; i < 5; i++) {
+        document.getElementById("here1").innerHTML = sortedLocations[0].name;
+        document.getElementById("here2").innerHTML = sortedLocations[0].distance.toFixed(2)+"m （"+farmeter+"m）";
+        const listItem = document.createElement("li");
+        const textContents =  " (" + sortedLocations[i].distance.toFixed(2) + " m)";
+        const stopId = sortedLocations[i].stopId;
+        const index = stopId.indexOf('_');
+        const stopId1 = stopId.slice(0, index);
+        listItem.innerHTML = '<a href="https://aomoricitybus.com/buslocation/index.htm?'+sortedLocations[i].latitude+','+sortedLocations[i].longitude+'" target="_blank">'+sortedLocations[i].name+"</a>"+textContents+'<a href="https://aomoricitybus.com/time/T/'+stopId1+'.html" target="_blank" style="text-decoration:none;">⌚</a>';
+        listItem.type = "1";
+        locationList.appendChild(listItem);
+
+      }
+      // 現在地の表示
+      const currentLocation = document.getElementById("currentLocation");
+      currentLocation.innerHTML = "現在地<BR>緯度 " + averageLatitude.toFixed(7) + ", 経度 " + averageLongitude.toFixed(7)+'<BR><a href="https://aomoricitybus.com/buslocation/index.htm?'+averageLatitude+','+averageLongitude+'" target="_blank">バスロケを開く</a>';
+      measurements = [];
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("tt").style.color = "#ff0000";
+  
+    }
+      sortedLocationsold = Array.from(sortedLocationsm);
+      // sortedLocationsold = sortedLocationsm;
+    }
+    function updateProgress(completed, total, currentKeyword,nRemains) {
+      const progressMessage = document.getElementById("progress-message");
+      const progressBar = document.getElementById("progress-bar");
+      const percentage = (completed / total) * 100;
+      progressMessage.innerHTML = `〔${percentage.toFixed(0).toString().padStart(2, ' ')}％〕処理中... (${completed}/${total})<BR>${currentKeyword} <BR>${nRemains}`;
+      progressBar.value = `${percentage}`;
+      if (completed === total) {
+        progressMessage.textContent = "データの取得が完了しました。";
+      }
+    }
+  function toggleShowdiv() {
+    if (document.getElementById("else").style.display == 'none') {
+      document.getElementById("else").style.display = 'block';
+      document.getElementById("main").style.display = 'none';
+    } else {
+      document.getElementById("else").style.display = 'none';
+      document.getElementById("main").style.display = 'block';
+    }
+  }
+  </script>
+  </body>
+</html>
