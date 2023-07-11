@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Multi AI</title>
+    <link rel="stylesheet" href="reset.css">
+    <style>
+      body {
+        zoom:3;
+        background-color: #a0b5d9; /* 薄いベージュ色の背景色 #F5F5DC */
+        font-family: sans-serif;
+      }
+      .message.user {
+        display: flex;
+        margin-bottom: 10px;
+        justify-content: flex-end;
+      }
+      .message.ai {
+        display: flex;
+        margin-bottom: 10px;
+        text-align: left;
+      }
+      .bubble { /* ChatGPTの返答の表示枠(user) */
+        background-color: #bbff6d;
+        color: black;
+        padding: 12px;
+        border-radius: 8px;
+        max-width: 60%;
+        position: relative;
+        overflow: hidden;
+        font-size: 10px;
+        animation: slideIn ease-in-out;
+      }
+      .bubble2 { /* 埋め込み要素の表示枠(user) */
+        background-color: #bbff6d;
+        color: black;
+        padding: 12px;
+        border-radius: 8px;
+        /* max-width: 60%; */
+        position: relative;
+        overflow: hidden;
+        font-size: 10px;
+      }
+      .ai .bubble { /* ChatGPTの返答の表示枠(ai) */
+        background-color: #f7f7f8;
+        justify-content: flex-start;
+      }
+      .ai .bubble2 { /* 埋め込み要素の表示枠(ai) */
+        background-color: #f7f7f8;
+        justify-content: flex-start;
+      }
+      @keyframes slideIn {
+        0% {
+          transform: translateX(100%);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+      #chat-container { /* チャット履歴全体 */
+        position: fixed;
+        bottom: 0;
+        left: 6px;
+        right: 6px;
+      }
+      #user-input { /* ユーザープロンプト  */
+        background-color:#ebf7ff;
+        /*width: 80%; */
+        margin-right: 0px;
+      }
+      #loading { /* 読み込み中の要素 */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+      }
+      .spinner { /* 読み込み中の要素 */
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 60px;
+        margin: -30px 0 0 -30px;
+        border-radius: 50%;
+        border: 5px solid #fff;
+        border-top-color: #000;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .choice {
+        background-color: #eff3ff;
+        border-color: #5d4ae4;
+        color: #5d4ae4;
+        border: 1px solid #5d4ae4; /* 枠線を定義 */
+        border-radius: 5px; /* 角丸を定義 */
+        padding: 10px 20px; /* テキストと枠線の間にスペースを設ける */
+        font-size: 18px; /* テキストのサイズを指定 */
+        cursor: pointer; /* マウスカーソルを手の形に変更 */
+        zoom:0.45;
+      }
+      p {
+        font-size: 8px;
+        line-height:10px;
+      } /*
+      button:not(.choice) {
+        display: none;
+      } */
+      img {
+        opacity: 1;
+      }
+      .faded {
+        opacity: 0.2;
+      }
+      .icon {
+        vertical-align:top;
+      }
+      .noticon {
+        vertical-align:top;
+      }
+      .modal {
+        display: none; /* 最初は非表示 */
+        position: fixed; /* 固定位置に表示 */
+        z-index: 1; /* ウィンドウが他の要素の上に表示されるようにします */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto; /* モーダルが画面外に出た場合にスクロールできるようにします */
+        background-color: rgba(0, 0, 0, 0.5); /* モーダルの背景色と透明度を設定します */
+      }
+      .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        position: relative; /* 追加 */
+      }
+      .close {
+        color: #aaa;
+        position: absolute; /* 追加 */
+        top: 10px; /* 追加 */
+        right: 10px; /* 追加 */
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .close:hover,.close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .notblue {
+        text-decoration:underline;/*下線を引く*/
+        text-decoration-color:#000;/*下線を黒色*/
+      }
+      .notblue:link {
+        color: #000; /* 未読リンクの色 */
+      }
+      .notblue:visited {
+        color: #000; /* 既読リンクの色も青にする */
+      }
+      .notblue:hover {
+        color: #000; /* ホバー時の色 */
+      }
+      .notblue:active {
+        color: #000; /* クリック時の色 */
+      }
+      .example2 label{
+        cursor: pointer;
+        display: block;
+        position: relative;
+      }
+      .example2 label::before{
+        content: ''; /* ::before の内容を空にする */
+        position: absolute; /* ::before を絶対位置に設定 */
+        top: 0;
+        left: 0;
+      }
+      .example2 input{
+        /*display: none;
+        outline:none;*/
+        visibility:hidden;
+      }
+      .example2 span{
+        display: inline-block; /* span要素をブロックレベル要素に変更 */
+        max-width: 100%; /* 最大幅を親要素に合わせる */
+        overflow: hidden; /* 要素からはみ出たコンテンツを非表示にする */
+      }
+      .example2 input:checked+span::before{
+        content: ''; /* ::before の内容を空にする */
+        position: absolute; /* ::before を絶対位置に設定 */
+        top: 0;
+        left: 0;
+        height: 5px;
+        width: 10px;
+        border-bottom: 3px solid #13a10e;
+        border-left: 3px solid #13a10e;
+        transform: rotate(-45deg);
+        /* margin: auto; */
+      }
+      .example2 input:checked+span::before .anime{
+        animation: 0.5s example2;
+      }
+      @keyframes example2{
+        0%{
+          height: 0;
+          width: 0;
+          top: 5px;
+          left: -20px;
+        }
+        30%{
+          height: 5px;
+          width: 0;
+          top: 7px;
+          left: -19px;
+        }
+        100%{
+          height: 5px;
+          width: 10px;
+          top: 0px;
+          left: -20px;
+        }
+      }
+      .loader007,.loader007:before,.loader007:after {
+        border-radius: 50%;
+        width: 2.5em;
+        height: 2.5em;
+        -webkit-animation-fill-mode: both;
+        animation-fill-mode: both;
+        -webkit-animation: load7 1.8s infinite ease-in-out;
+        animation: load7 1.8s infinite ease-in-out;
+      }
+      .loader007 {
+        color: #000000;
+        font-size: 10px;
+        margin: 80px auto;
+        position: relative;
+        text-indent: -9999em;
+        -webkit-transform: translateZ(0);
+        -ms-transform: translateZ(0);
+        transform: translateZ(0);
+        -webkit-animation-delay: -0.16s;
+        animation-delay: -0.16s;
+      }
+      .loader007:before,.loader007:after {
+        content: '';
+        position: absolute;
+        top: 0;
+      }
+      .loader007:before {
+        left: -3.5em;
+        -webkit-animation-delay: -0.32s;
+        animation-delay: -0.32s;
+      }
+      .loader007:after {
+        left: 3.5em;
+      }
+      @-webkit-keyframes load7 {
+        0%,
+        80%,
+        100% {
+          box-shadow: 0 2.5em 0 -1.3em;
+        }
+        40% {
+          box-shadow: 0 2.5em 0 0;
+        }
+      }
+      @keyframes load7 {
+        0%,
+        80%,
+        100% {
+          box-shadow: 0 2.5em 0 -1.3em;
+        }
+        40% {
+          box-shadow: 0 2.5em 0 0;
+        }
+      }
+      .star {
+        width: 30px;
+        height: 30px;
+        display: inline-block;
+        position: relative;
+      }
+      .star:before,.star:after {
+        content: "";
+        width: 0;
+        height: 0;
+        border: 8px solid;
+        border-color: orange transparent;
+        position: absolute;
+        top: 11px;
+        left: 9px;
+        transform: rotate(-45deg);
+      }
+      .star:before {
+        border-color: white transparent;
+        z-index: 2;
+      }
+      .star:after {
+        border-color: orange transparent;
+        z-index: 1;
+      }
+      .filled {
+        background-color: yellow;
+      }
+      .text-box {
+        border: 1px solid black; /* 枠線のスタイルを指定 */
+        padding: 10px; /* 枠内の余白を指定 */
+        width: 200px; /* 枠の幅を指定 */
+      }
+    </style>
+  </head>
+  <body>
+    <center><h2 id="main"><img src="ei-home.png" width="18" height="18" alt="再読み込みボタン" onclick='ifhome();'>　Multi AI　<img src="ei-random.png" width="18" height="18" alt="切換えボタン" onclick="createRadioButtons();"></h2></center>
+    <div id="chat-container">
+      <div id="chat-log"><div id="myModal" class="modal">
+        <div class="modal-content">
+          <span class="close" onclick="closeModal();">&times;</span>
+          <div id="modal-contents"></div>
+        </div>
+      </div>
+      </div>
+      <div id="loading" style="display:none;">
+        <div class="spinner"></div>
+      </div><!--<img src="\icons\map.png" width="5.5%" class="noticon" id="mapb" onclick="getLocation();">--><img src="\icons\ei-picture.png" width="5.5%" class="icon" onclick="dalle(document.getElementById('user-input').value);">
+      <input type="text" id="user-input" oninput="checkTextbox()" placeholder="Send a message." autofocus />
+      <img src="\icons\ei-microphone.png" width="5.5%" class="noticon" id="mic"><img src="\icons\openai.png" width="5.5%" class="icon" id="send" onclick="processUserInput();"><img src="\icons\google.png" width="5.5%" class="icon" onclick="Gsearch(document.getElementById('user-input').value);"><img src="\icons\social.png" width="5.5%" class="icon" onclick="searchWikipedia(document.getElementById('user-input').value,false);"><img src="\icons\ei-translation.png" width="5.5%" class="icon" onclick="translateAndDisplay(document.getElementById('user-input').value,'ja');"><img src="\icons\amazon.png" width="5.5%" class="icon" id="send" onclick="amazoncall(document.getElementById('user-input').value);"><img src="\icons\rak.png" width="5.5%" class="icon" id="send" onclick="amazoncall(document.getElementById('user-input').value);">
+      <BR><p id="footer">　　　0/50<BR>Free Research Preview. Multi AI produce inaccurate information about people, places, or facts. <a href="#" id="foot" class="notblue">Multi AI Unknown Version</a></p>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+      var url = window.location.href
+      if ( url.includes("time=")==false) {
+        if (url !== 'https://wildcodepenguin.tcpexposer.com/Multi_AI.html') {
+          location.href = url+'&time='+Date.now();
+         } else {
+          location.href = url+'?time='+Date.now();
+        }
+      }
+      let tokens;
+      // ラジオボタンを生成するための配列
+      var keylist = [
+        { option: "通常モード", url: "Multi" },
+        { option: "Yamada", url: "yamada" },
+        { url: "High_School",option:"高校受験対策" },
+        { url: "ChatGPT",option:"ChatGPT API" },
+        { url: "Search",option:"GPT+Search" },
+        { url: "ADD",option:"強化学習AI" }
+      ];
+      // URLの引数の左側から「time=」までを切り抜く関数
+      function ifhome() {
+        var url = window.location.href; // 現在のURLを取得
+        if (url.includes("time=")) {
+          var index = url.indexOf("time="); // "time="の位置を取得
+          if (index !== -1) {
+            var timeValue = url.substring(index + 5); // "time="の後ろの値を取得
+            console.log("timeValue:", timeValue); // コンソールに表示（テスト用）
+            location.href = url.replace(timeValue,Date.now());
+          }
+        } else if (url == 'https://wildcodepenguin.tcpexposer.com/Multi_AI.html') {
+          location.href = url+'?time='+Date.now();
+        }
+      }
+      function ifreload() {
+        if (window.location.search.length === 0 || window.location.search.substr(0,5) === "?time") {
+          location.href ='https://wildcodepenguin.tcpexposer.com/';
+        } else {
+          window.location.reload();
+        }
+      }
+      // ラジオボタンを動的に生成する関数
+      function createRadioButtons() {
+        var radioButtonsDiv = document.getElementById("modal-contents");
+        radioButtonsDiv.innerHTML = '<h6>実行するモードを選択して「確定」ボタンを押してください。</h6>';
+        for (var i = 0; i < keylist.length; i++) {
+          var radioButton = document.createElement("input");
+          radioButton.type = "radio";
+          radioButton.name = "options";
+          radioButton.value = i;
+          radioButton.id = i;
+          var label = document.createElement("label");
+          label.innerHTML = keylist[i].option;
+          label.setAttribute("for",i);
+          radioButtonsDiv.appendChild(radioButton);
+          radioButtonsDiv.appendChild(label);
+          radioButtonsDiv.appendChild(document.createElement("br"));
+        }
+        radioButtonsDiv.innerHTML += '<button id="offmodal">キャンセル</button><button onclick="submitForm()">確定</button>';
+        document.getElementById("offmodal").addEventListener('click',function(){ // 第一引数にclickを指定
+          // クリックイベントの処理を記述
+          closeModal();
+        });
+        document.getElementsByName("options")[0].checked = true;
+        for (var n = 0; n < keylist.length; n++) {
+          if (checkURL(keylist[n].url)) {
+            document.getElementsByName("options")[0].checked = false;
+            document.getElementsByName("options")[n].checked = true;
+          }
+        }
+        document.getElementById("myModal").style.display = "block";
+      }
+      // フォーム送信時の処理
+      function submitForm() {
+        var radios = document.getElementsByName("options");
+        var selectedOption;
+        for (var i = 0; i < radios.length; i++) {
+          if (radios[i].checked) {
+            selectedOption = radios[i].value;
+            break;
+          }
+        }
+        if (selectedOption !== undefined) {
+          var selectedUrl = keylist[selectedOption].url;
+          window.location.href = 'https://wildcodepenguin.tcpexposer.com/Multi_AI.html?'+selectedUrl+'&time='+Date.now();
+        } else {
+          alert("オプションを選択してください。");
+        }
+      }
+      // モーダルウィンドウを開くための関数
+      function openModal(contents) {
+        if (contents) {
+          document.getElementById("modal-contents").innerHTML = contents;
+          document.getElementById("myModal").style.display = "block";
+        }
+      }
+      // モーダルウィンドウを閉じるための関数
+      function closeModal() {
+        document.getElementById("myModal").style.display = "none";
+      }
+      // モーダル外の領域をクリックしたらモーダルを閉じる
+      window.onclick = function(event) {
+        if (event.target == document.getElementById("myModal")) {
+          closeModal();
+        }
+      }
+      window.onclick = function(event) {
+        if (event.target.classList.contains("modal")) {
+          closeModal();
+        }
+      }
+
+      // setInterval(function () {document.getElementById('testbook').href = '/テストの図書室/index.html?'+Date.now();},1);
+      function checkURL(keyword,title) {
+        var url = window.location.href;
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has(keyword)) { // url.endsWith("?yamada")
+          document.getElementById("main").innerHTML = document.getElementById("main").innerHTML.replace(/Multi AI/g, title);
+          document.getElementById("footer").innerHTML = document.getElementById("footer").innerHTML.replace(/Multi AI/g, title);
+          document.title = document.title.replace(/Multi AI/g, title);
+          return true;
+        } else {
+          return false;
+        }
+      }
+      async function translateAndDisplay(say) {
+        try {
+          const translatedText = await deepl(say, 'ja');
+          displayMessage(say, "user", "", 25);
+          document.getElementById("user-input").value = "";
+          checkTextbox();
+          const reversetranslatedText = await deepl(say, 'en');
+          AITagWrite('日本語訳：'+translatedText+'<BR>英語訳：'+reversetranslatedText,1,"");
+        } catch (error) {
+          console.error(error);
+        }
+      }  
+      function bingcolor(times) {
+        switch (times){
+          case 1:
+          case 2:
+          case 3:
+            return '#24814b';
+          case 4:
+          case 5:
+            return '#dd8602';
+          case 6:
+            return '#d60000';
+          default:
+            return null;
+        }
+      }
+      var userQ = [];
+      var aiA = [];
+      var Gdata = [];
+      var amazlist = [];
+      var maxindex = 6;
+      function addTouserQ(element) {
+        userQ.push(element); // 要素を追加
+        if (userQ.length > maxindex) {
+          userQ.shift(); // 最初の要素を削除
+        }
+        // console.log(userQ);
+        // console.log('質問：'+userQ.length+'件');
+      }
+      // JavaScriptコード
+      function hideImageBySrc(src) {
+        var imgElements = document.getElementById('chat-container').getElementsByTagName('img');
+        for (var i = 0; i < imgElements.length; i++) {
+          var imgElement = imgElements[i];
+          if (imgElement.getAttribute('src') === src) {
+            imgElement.style.display = 'none';
+          }
+        }
+      }
+      function showImageBySrc(src) {
+        var imgElements = document.getElementById('chat-container').getElementsByTagName('img');
+        for (var i = 0; i < imgElements.length; i++) {
+          var imgElement = imgElements[i];
+          if (imgElement.getAttribute('src') === src) {
+            imgElement.style.display = 'inline';
+          }
+        } 
+      }
+      function addToaiA(element) {
+        aiA.push(element); // 要素を追加
+        if (aiA.length > maxindex) {
+          aiA.shift(); // 最初の要素を削除
+          document.getElementById('count1').outerHTML = '';
+          for (let index = 1; index < maxindex; index++) {
+            let index2 = index + 1;
+            document.getElementById('count'+index2).outerHTML = '<div id="count'+index+'" style="text-align: right;">'+index+'/'+maxindex+'<font color="'+bingcolor(index)+'">●</font></div>';
+          }
+        }
+        // console.log(aiA);
+        // console.log('回答：'+aiA.length+'件');
+      }
+      document.getElementById('mic').setAttribute("recon",0);
+      const startBtn = document.getElementById('mic');
+      const transcript = document.getElementById('user-input');
+      document.getElementById('user-input').style.width="40%";
+      // 録音開始ボタンがクリックされたときの処理
+      startBtn.addEventListener('click', () => {
+        if (document.getElementById('user-input').value=="") {
+          if (document.getElementById('mic').getAttribute("recon")==1) {
+            recognition.stop();
+            document.getElementById('mic').setAttribute("recon",0);
+            document.getElementById('mic').src = '\\icons\\ei-microphone.png';
+            return;
+          }
+          // 録音APIのサポートをチェック
+          if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+            transcript.textContent = 'このブラウザは音声認識をサポートしていません。';
+            return;
+          }
+          finalTranscript = "";
+          // 録音APIのインスタンスを作成
+          recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+          // 認識中に逐次結果を取得するように設定
+          recognition.interimResults = true;
+          // 認識開始イベント
+          recognition.onstart = () => {
+            document.getElementById('mic').src = '\\icons\\ei-microphone-red.png';
+            document.getElementById('mic').setAttribute("recon",1);
+          }; 
+          // 認識結果イベント
+          recognition.onresult = (event) => {
+            let interimTranscript = '';
+            // 認識結果を取得
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const transcript = event.results[i][0].transcript; 
+              // 逐次結果と確定結果に分ける
+              if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+              } else {
+                interimTranscript += transcript;
+              } 
+            } 
+            // 逐次結果を表示
+            if (document.getElementById('mic').getAttribute("recon")==1) {
+              transcript.value = interimTranscript;
+            }
+          };
+          // 録音停止イベント
+          recognition.onend = () => {
+            document.getElementById('mic').src = '\\icons\\ei-microphone.png';
+            if (document.getElementById('mic').getAttribute("recon")==1) {
+              transcript.value = finalTranscript;
+              document.getElementById('mic').setAttribute("recon",0);
+            }
+            checkTextbox();
+            // processUserInput();
+            // chatgpt(finalTranscript,3.5);
+          };
+          // 録音開始
+          recognition.start();
+      }});
+      function deleteCookie() {
+			  document.cookie = "key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+			  alert("履歴を削除しました。");
+        window.location.reload();
+		  }
+      function checkCookieAndAssign() {
+        var cookieName = "key=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var cookieArray = decodedCookie.split(';');
+        for(var i = 0; i < cookieArray.length; i++) {
+          var cookie = cookieArray[i];
+          while (cookie.charAt(0) === ' ') {
+            cookie = cookie.substring(1);
+          }
+          if (cookie.indexOf(cookieName) === 0) {
+            var key = cookie.substring(cookieName.length);
+            return key; // "key"というデータがCookieにある場合、変数keyに代入
+          }
+        }
+        var key = window.prompt("OpenAIのAPIキーを入力してください。");  // Cookieに"key"というデータがない場合、プロンプトを表示し、入力された値を変数keyに代入
+        // キャンセルが押された場合、再度プロンプトを表示
+        if (key === null) {
+          return checkCookieAndAssign();
+        }
+        // 入力された値が空の場合、再度プロンプトを表示
+        if (key === "") {
+          return checkCookieAndAssign();
+        }
+        // 入力された値をCookieに保存
+        document.cookie = "key=" + key;
+        return key;
+      }
+      // var key = checkCookieAndAssign();
+      var url = "https://script.googleusercontent.com/macros/echo?user_content_key=plwRahpUqhNnWLDoY-TCmIhjI_xQvW2EmlhB3rnStJ5MTG7ltGxH2dGpMYyYe0y44QZ5SeI9Lty0ByAai39nNCoL9Rcy_bU1m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnGQHBSBSu9D9xGEek4AahH5dlrCFOb_szYyF-reBtMOg6qlcvsSUkeqSl7d19MWRewFIMGEa28SEbB-sESpA7KuHO3TLill6gw&lib=MxvVatS0ZnJhcyYUZQUnFjZe5J8QAxtqO";
+      
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          const apiKey = response.apikey;
+          console.log("API Key:", apiKey);
+        }
+      };
+      xhr.send();
+      var csturl = true;
+      var alturl = false;
+      const windowHeight = window.innerHeight;
+      const chatLogHeight = 0.32513661202186 *windowHeight -108.16120218579;
+      const styleElement = document.createElement("style");
+      styleElement.textContent = `
+        #chat-log {
+          height: ${chatLogHeight}px; /* 表示する高さを指定 */
+          overflow: scroll; /* スクロールバーを表示 */
+        }
+        .preformatted {
+          white-space: pre-wrap;
+          word-break: break-all;
+          max-width: ${chatLogHeight*0.575}px;
+        }
+        .example2 {
+          white-space: pre-wrap;
+          word-break: break-all;
+          max-width: ${chatLogHeight*0.575}px;
+        }
+      `;
+      let num = 0;
+      let stn = 0;
+      var b= 0;
+      var respall = '';
+      var jyanlu = '';
+      document.head.appendChild(styleElement);
+      checkTextbox();
+      const chatLog = document.getElementById("chat-log");
+      function logscroll() { // 自動でチャット履歴をスクロールする関数
+        document.getElementById("chat-log").scrollTop = document.getElementById("chat-log").scrollHeight;
+      }
+      // プレーヤーが準備完了したときに呼び出される関数
+      function onPlayerReady(event) {
+        var videoIded = event.target.getVideoData().video_id; // 動画IDを取得
+        var totalTime = event.target.getDuration(); // 総時間を取得
+        var videoTitle = event.target.getVideoData().title; // 動画タイトルを取得
+        var channelName = event.target.getVideoData().author; // 動画に関する情報を取得
+        document.getElementById(videoIded+'-time').innerHTML = videoTitle+'<br><font color="#9b8ac9">長さ：'+(totalTime/60).toFixed(2)+'分</font><br><font color="#23a531">再生開始待ち</font>';
+        document.getElementById(videoIded+'-flag').innerHTML = 'waiting';
+        logscroll();
+      }
+
+      // プレーヤーの状態が変更されたときに呼び出される関数
+      function onPlayerStateChange(event) {
+        if (event.data == YT.PlayerState.PLAYING) {
+          // 3ミリ秒ごとに再生位置を更新する
+          const timerId = setInterval(function() {
+            var currentTime = event.target.getCurrentTime(); // 現在の再生位置を取得
+            var totalTime = event.target.getDuration(); // 総時間を取得
+            var videoId = event.target.getVideoData().video_id; // 動画IDを取得
+            var videoTitle = event.target.getVideoData().title; // 動画タイトルを取得
+            var channelName = event.target.getVideoData().author; // チャンネル名を取得
+            var videoData = event.target.getVideoData(); // 動画に関する情報を取得
+            var timeDifference = totalTime - currentTime;
+            var percentage = (currentTime.toFixed(2)/totalTime.toFixed(2))*100;
+            var currentTimeElement = document.getElementById(videoId+'-time');
+            currentTimeElement.innerHTML = videoTitle+'<br><font color="#d43111">提供：'+channelName+'</font>';
+            // currentTimeElement.innerHTML = '【'+percentage.toFixed(2)+'％】現在の動画: ' + currentTime.toFixed(3) + '秒（－' + timeDifference.toFixed(3) + '秒）<br><progress style="zoom:3;" max="'+totalTime.toFixed(3)+'" value="'+currentTime.toFixed(3)+'"></progress>';
+            if (currentTime <=0.2) {
+              logscroll();
+            }
+            if (timeDifference <= 0.825) {
+              currentTimeElement.innerHTML = "ご視聴ありがとうございました。";
+              document.getElementById(videoId+'-flag').innerHTML = "played";
+              clearInterval(timerId);
+            } else {
+              document.getElementById(videoId+'-flag').innerHTML = "playing";
+            }
+          }, 3);  
+        }
+      }
+
+      function waitForTextChange(vidd) {
+        return new Promise(resolve => {
+          const checkTextChange = () => {
+            const timeElement = document.getElementById(vidd+'-flag');
+            if (timeElement.innerHTML == "played") {
+              resolve(); // Promiseを解決して処理を完了する
+            } else {
+              setTimeout(checkTextChange, 75); // 75ミリ秒後に再度チェックする
+            }
+          };
+          checkTextChange();
+        });
+      }
+      async function YTShow(vid,show) {
+        if (show==true) {
+          await AITagWrite('<div id="'+vid+'" style="zoom:1.775;" sandbox="allow-scripts allow-same-origin"></div><div class="preformatted" id="'+vid+'-time">読み込み中...</div><div id="'+vid+'-flag" style="display:none;">loading</div>',0.85,'https://youtu.be/'+vid);
+        } else {
+          await AITagWrite('<div id="'+vid+'" style="zoom:1.775;" sandbox="allow-scripts allow-same-origin"></div><div class="preformatted" id="'+vid+'-time">読み込み中...</div><div id="'+vid+'-flag" style="display:none;">loading</div>',0.85,"");
+        }
+
+        logscroll();
+        const apiElement = document.createElement("script");
+        apiElement.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(apiElement);
+        setTimeout(function() {
+          // プレーヤーを作成
+          var player = new YT.Player(vid, {
+            height: '101.25',
+            width: '180',
+            videoId: vid, // 動画のIDを指定
+            events: {
+              'onReady': onPlayerReady,
+              'onStateChange': onPlayerStateChange
+            },
+            // パラメータの設定
+            playerVars: {
+            }
+          });
+        },1000);
+        await waitForTextChange(vid);
+      }
+      window.onload = function () {
+        var xhr = new XMLHttpRequest();
+        xhr.open('HEAD', 'https://wildcodepenguin.tcpexposer.com/Multi_AI.html?time='+Date.now(), true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+                var lastModified = xhr.getResponseHeader('Last-Modified');
+                var lastModifiedDate = new Date(lastModified);
+                var month = lastModifiedDate.toLocaleString('en', { month: 'long' });
+                var day = lastModifiedDate.toLocaleString('en', { day: 'numeric' });
+                var formattedDate = lastModifiedDate.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+                document.getElementById("foot").innerHTML = document.getElementById("foot").innerHTML.replace(/Unknown/g, month + ' '+day);
+                setTimeout(function() {
+                  document.getElementById("foot").addEventListener("click", function(event) {
+                  event.preventDefault();
+                  // クリックイベントの処理
+                  console.log(formattedDate);
+                  openModal('最終更新日時: ' + formattedDate);
+                });
+
+              },400);
+                // document.getElementById("footer").innerHTML += '<a id="version" class="notblue">Multi AI '+month + ' ' + day + ' Version</a>';
+                // document.getElementById("version").addEventListener('click',openModal(lastModified));
+            }
+        };
+        xhr.send();
+// 今日の日付を取得
+var today = new Date();
+
+// 比較する日付を設定（2022年12月31日）
+var targetDate = new Date('2022-12-31');
+
+// 2つの日付の差分を計算
+var timeDiff = Math.abs(today.getTime() - targetDate.getTime());
+
+// 差分を日数に変換
+var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+// 余りを計算
+var remainder = 1+(diffDays % 2);
+// 結果を出力
+console.log(remainder);
+      setTimeout(async function() {
+        // showbing("Nodejs",'start');
+        // showbing("Nodejs",'end');
+        /* ここに起動時処理を書く （基準ズーム倍率＝1.775） */
+
+        hideImageBySrc("\\icons\\rak.png");
+        if (checkURL("Multi","Multi AI")==false) {
+        if (checkURL("Search","GPT+Search")==false) {
+          hideImageBySrc("\\icons\\amazon.png");
+          hideImageBySrc("\\icons\\rak.png");
+        }
+        if (checkURL("yamada","Yamada Study")==true) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('HEAD', 'https://wildcodepenguin.tcpexposer.com/WeBuild/index.html', true);
+          xhr.onreadystatechange = async function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                var lastModified = xhr.getResponseHeader('Last-Modified');
+                var lastModifiedDate = new Date(lastModified);
+                var month = lastModifiedDate.toLocaleString('en', { month: 'long' });
+                var day = lastModifiedDate.toLocaleString('en', { day: 'numeric' });
+                var formattedDatew = lastModifiedDate.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                // await AITagWrite('<a href="./WeBuild/index.html?'+Date.now()+'" target="_blank"><img src="banner.jpg" style="width:180px;"></img></a><BR>【最新】2023年夏季旅行について<BR> ※定期的に更新しています。<BR>最終更新：'+formattedDatew,1,"");
+                console.log(formattedDatew);
+              }
+            }
+
+            var xhr2 = new XMLHttpRequest();
+          xhr2.open('HEAD', 'https://wildcodepenguin.tcpexposer.com/テストの図書室/books.json', true);
+          xhr2.onreadystatechange = async function () {
+            if (xhr2.readyState === 4 && xhr2.status === 200) {
+                var lastModified = xhr2.getResponseHeader('Last-Modified');
+                var lastModifiedDate = new Date(lastModified);
+                var month = lastModifiedDate.toLocaleString('en', { month: 'long' });
+                var day = lastModifiedDate.toLocaleString('en', { day: 'numeric' });
+                var formattedDatet = lastModifiedDate.toLocaleString('ja-JP', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: false
+                });
+                await AITagWrite('<a href="/テストの図書室/index.html?'+Date.now()+'" target="_blank" id="testbook"><img src="yama23f.gif" style="width:180px;"></img></a><BR>【最新】2023年前期テストについて<BR> ※定期的に更新しています。<BR>最終更新：'+formattedDatet,1,"");
+                console.log(formattedDatet);
+              }
+            }
+            xhr.send();
+            xhr2.send();
+          
+          // setTimeout(async function() {await YTShow("xoP2zSnnu8k");}, 1000);
+          setTimeout(function() {displayMessage(`新しい学習支援サービスへようこそ！私たちは皆さんの学習をサポートし、成果を最大化するためにここにいます。革新的な学習ツール、質の高い教材を提供し、皆さんの学びの旅をサポートします。一緒に学び、成長しましょう！
+
+株式会社 Toki's system
+学習支援サービスチーム
+          `,"ai","",3);},500);
+          } else if (checkURL("High_School","高校受験対策")==true) {
+            setTimeout(async function() {await AITagWrite('<a href="/テストの図書室" target="_blank"><img src="yama23f.gif" style="width:180px;"></img></a><BR>【最新】過去問集<BR> ※定期的に更新しています。<BR>最終更新：(未公開)',1,"");}, 200);
+            setTimeout(async function() {await AITagWrite('<a href="/テストの図書室" target="_blank"><img src="yama23f.gif" style="width:180px;"></img></a><BR>【最新】2023年前期テストについて<BR> ※定期的に更新しています。<BR>最終更新：(未公開)',1,"");}, 800);
+            setTimeout(async function() {await AITagWrite('<a href="/テストの図書室" target="_blank"><img src="yama23f.gif" style="width:180px;"></img></a><BR>【最新】2023年前期テストについて<BR> ※定期的に更新しています。<BR>最終更新：(未公開)',1,"");}, 1400);
+            setTimeout(async function() {await AITagWrite('<a href="/テストの図書室" target="_blank"><img src="yama23f.gif" style="width:180px;"></img></a><BR>【最新】2023年前期テストについて<BR> ※定期的に更新しています。<BR>最終更新：(未公開)',1,"");}, 2000);
+          } else if (checkURL("Search","GPT+Search")==true) {
+            hideImageBySrc("\\icons\\ei-picture.png");
+            hideImageBySrc("\\icons\\ei-translation.png")
+            hideImageBySrc("\\icons\\google.png");
+            document.getElementById('user-input').style.width="50%";
+          } else if (checkURL("ChatGPT","ChatGPT API")==true) {
+            hideImageBySrc("\\icons\\ei-picture.png");
+            hideImageBySrc("\\icons\\ei-translation.png");
+            hideImageBySrc("\\icons\\social.png");
+            hideImageBySrc("\\icons\\google.png");
+            document.getElementById('user-input').style.width="75%";
+          } else if (checkURL("ADD","強化学習AI")==true) {
+            hideImageBySrc("\\icons\\ei-picture.png");
+            hideImageBySrc("\\icons\\ei-translation.png");
+            hideImageBySrc("\\icons\\social.png");
+            hideImageBySrc("\\icons\\google.png");
+            document.getElementById('user-input').style.width="75%";
+          } else {
+            createRadioButtons();
+            /*
+            setTimeout(async function() {
+          await displayMessage(`どうも、本アプリ制作者のTOKIと申します。
+          このアプリはAI系ソフトウェアを集めたものです。
+          　・位置情報共有
+          　・画像生成
+          　・対話型AI
+          　・Google検索
+          　・Wikipedia
+          　・Deepl翻訳
+          これらすべてを一度に扱えるアプリです。`,"ai","",7);
+        }, 1000); */
+        }
+      }
+
+        // setTimeout(async function() {await displayMessage(`日替わり名言集`,"ai","",1);}, 1000);
+      },200); // 200ミリ秒後に実行する
+    }
+      function checkTextbox() {
+        var textboxValue = document.getElementById("user-input").value;
+        // learning();
+        var long = textboxValue.length;
+        let replacedStr = document.getElementById("footer").innerHTML.replace(/\d+(?=\/50)/, long);
+        document.getElementById("footer").innerHTML = replacedStr;
+
+        if (long>50) {
+          if (false) {
+            document.getElementById("user-input").value = textboxValue.substr(0,50);
+            let replacedStr = document.getElementById("footer").innerHTML.replace(/\d+(?=\/50)/, 50);
+          } else {
+            let replacedStr = document.getElementById("footer").innerHTML.replace(/\d+(?=\/50)/, long);
+            document.getElementById("footer").style.color = "red";
+          }
+
+          document.getElementById("footer").innerHTML = replacedStr;
+        }
+
+        const sizepercentage = '5.275%';
+        const marginpx =  '0px 4.2px';
+        var iconlist = document.getElementsByClassName('icon');
+        var noticonlist = document.getElementsByClassName('noticon');
+        // 空の時に休む
+        for(i=0;i<iconlist.length;i++){
+          var nowselector = iconlist[i];
+          nowselector.style.margin = marginpx;
+          nowselector.setAttribute("width", sizepercentage);
+          if (textboxValue === "") {
+            nowselector.classList.add("faded");
+            if (nowselector.getAttribute("tkset")==null) {
+              nowselector.setAttribute("tkset",nowselector.getAttribute("onclick"));
+            }
+            nowselector.removeAttribute("onclick");
+          } else {
+            nowselector.classList.remove("faded");
+            var action = nowselector.getAttribute("tkset");
+            nowselector.setAttribute("onclick",action);
+          }
+        }
+
+        for(k=0;k<noticonlist.length;k++){
+          var nowselector = noticonlist[k];
+          nowselector.style.margin = marginpx;
+          nowselector.setAttribute("width", sizepercentage);
+          if (textboxValue === "") {
+            nowselector.classList.remove("faded");
+            if (nowselector.getAttribute("tkset")==null) {
+              nowselector.setAttribute("tkset",nowselector.getAttribute("onclick"));
+            }
+            var action = nowselector.getAttribute("tkset");
+            nowselector.setAttribute("onclick", action);
+          } else {
+            nowselector.classList.add("faded");
+            nowselector.removeAttribute("onclick");
+          }
+        }
+      }
+      // ユーザーの入力を処理する関数
+function processUserInput() {
+  const userInput = document.getElementById("user-input").value;
+  if (userInput) {
+    displayMessage(userInput, "user", "", 25);
+    logscroll();
+    let stn = 0;
+
+    document.getElementById("user-input").value = "";
+    checkTextbox();
+    if (checkURL("Search") === true) {
+      selectkeyword(userInput)
+  .then(function(result) {
+    console.log(result); // 結果を表示するなどの処理を行う
+    var selectedword = result;
+    showbing(selectedword, 'start');
+    var cx = '35f2be144335b473d';
+    var apiKey = 'AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM';
+    var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + selectedword;
+    var xhrs = new XMLHttpRequest();
+    var searchResults = '';
+    xhrs.open('GET', url, true);
+    xhrs.onload = function () {
+      if (xhrs.status === 200) {
+        var response = JSON.parse(xhrs.responseText);
+        var results = response.items;
+        for (var i = 0; i < results.length; i++) {
+          var result = results[i];
+          // document.getElementById("cn"+aiA.length).innerHTML = (i + 1) + '/' + results.length;
+          const productId = extractProductIdFromUrl(result.link);
+          if (productId) {
+            amazlist.push({
+              url:result.link,
+              title: result.title,
+              snippet: result.snippet,
+              productId:productId
+            })
+          }
+          searchResults += result.snippet// 'URL：' + result.link + '\nタイトル：' + result.title + '\n本文：' + result.snippet+'\n';
+          Gdata.push({
+            url: result.link,
+            title: result.title,
+            snippet: result.snippet
+          });
+          console.log(result.snippet);
+        }
+        console.log(amazlist);
+        ChatGPT(userInput, 3.5,searchResults,selectedword);
+      } else {
+        console.log('検索エラー: ' + xhrs.status);
+      }
+    };
+    xhrs.send();
+  })
+  .catch(function(error) {
+    console.error(error); // エラーハンドリングを行う
+  });
+
+    } else {
+      ChatGPT(userInput, 3.5);
+    }
+  }
+}
+/*
+      function processUserInput() {
+        const userInput = document.getElementById("user-input").value;
+        if (userInput) {
+          displayMessage(userInput, "user","",20);
+          logscroll();
+          // showLoading();
+          let stn = 0;
+                    
+          document.getElementById("user-input").value = "";
+          checkTextbox();
+          if (checkURL("Search")===true) {
+            showbing(userInput,'start');
+            // Programmable Search EngineのCX（検索エンジンID）とAPIキーを設定
+            var cx = '35f2be144335b473d';
+            var apiKey = '';
+            // 検索クエリを取得
+            // var query = document.getElementById('query').value;
+            // APIリクエストを作成
+            var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + userInput;
+            // AJAXリクエストを送信
+            var xhrs = new XMLHttpRequest();
+            var searchResults = '';
+            xhrs.open('GET', url, true);
+            xhrs.onload = function() {
+              if (xhrs.status === 200) {
+                // レスポンスをJSONとしてパース
+                var response = JSON.parse(xhrs.responseText);
+                // 検索結果を表示
+                // 各検索結果を表示
+                
+                var results = response.items;
+                for (var i = 0; i < results.length; i++) {
+                  var result = results[i];
+                  console.log((i+1)+'/'+results.length);
+                  searchResults += 'URL：'+result.link+'\nタイトル：'+result.title+'\n本文：'+result.snippet;
+                  console.log(searchResults);
+                }
+              } else {
+                // エラーメッセージを表示
+                console.log('検索エラー: ' + xhrs.status);
+              }
+            };
+            xhrs.send();
+            
+            ChatGPT(userInput+'\n補足情報:'+searchResults,3.5);
+          } else {
+            ChatGPT(userInput,3.5);
+          }
+
+        }
+      }
+      */
+      function AITagWrite(mess,isbig,openurl,switchs) {
+          const messageElement = document.createElement("div");
+          messageElement.classList.add("message", "ai");
+          const bubbleElement = document.createElement("div");
+          if (switchs) {
+            bubbleElement.classList.add("bubble");
+          } else {
+            bubbleElement.classList.add("bubble2");
+          }
+
+          const contentElement = document.createElement("div");
+          num++;
+          b++;
+          contentElement.id = "aidiv" + b;
+          contentElement.style.zoom = isbig;
+          bubbleElement.appendChild(contentElement);
+          messageElement.appendChild(bubbleElement);
+          chatLog.appendChild(messageElement);
+          if (openurl !== '') {
+            contentElement.addEventListener("click", function() {
+              new_window_open(openurl);
+            });
+          }
+          document.getElementById("aidiv" + b).innerHTML = mess;
+        // console.log(b);
+
+        logscroll();
+        
+      }
+      async function printAIResponsebing(response,index,onclick) {
+        showbing("Nodejs",'end');
+        // document.getElementById(index).classList.add("bubble");
+        var chars = response.split("");
+        var i = 0;
+        var interval = setInterval(await function() {
+          if(i < chars.length) {
+            var str = chars[i];
+            document.getElementById(index).innerHTML +=  str.replace(/\n/g, "<br>");
+            i++;
+            logscroll();
+          } else {
+            if (aiA.length!==0) {
+
+              document.getElementById(index).innerHTML +=  '<!--<div style="text-align: right;">'+tokens+'</div>--><div id="count'+aiA.length+'" style="text-align: right;">'+aiA.length + '/'+maxindex+'<font color="'+bingcolor(aiA.length)+'">●</font></div>';
+              if (checkURL("Search")===true) {
+                console.log("index is "+amazlist.length);
+                document.getElementById('count'+aiA.length).style.display = 'none';
+                if (amazlist.length!==0) {
+                  document.getElementById(index).outerHTML += `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" id="loaddesun">
+    <circle cx="12" cy="12" r="10" fill="none" stroke="#ce9af9"
+            stroke-width="2" stroke-dasharray="63" stroke-linecap="round">
+        <animate attributeName="stroke-dashoffset" values="63;16;63" keyTimes="0;.5;1"
+                 keySplines=".42 0 .58 1;.42 0 .58 1;" calcMode="spline"
+                 dur="1.4s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="rotate" values="0,12,12;135,12,12;450,12,12"
+                          keySplines=".42 0 .58 1;.42 0 .58 1;" calcMode="spline"
+                          dur="1.4s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="rotate" from="0,12,12" to="270,12,12"
+                          calcMode="linear" dur="1.4s" repeatCount="indefinite" additive="sum"/>
+    </circle>
+</svg>`;
+                }
+              }
+              //showbing('<!--<div style="text-align: right;">'+tokens+'</div>--><div id="count'+aiA.length+'" style="text-align: right;">'+aiA.length + '/'+maxindex+'<font color="'+bingcolor(aiA.length)+'">●</font></div>',"html");
+            } /*
+            var result = "";
+            for (var i = 0; i < Urls.length; i++) {
+              result += Urls[i] + "<br>";
+            }
+            document.getElementById(index).innerHTML += result;
+            var content = document.getElementById(index).innerHTML;
+            var replacedContent = content.replace(/(https:\/\/\S+)/g, '<a href="$1">$1</a>');
+            document.getElementById(index).innerHTML = replacedContent; */
+            if (onclick !== '') {
+              document.getElementById(index).addEventListener("click", function() {
+                openModal(onclick);
+              });
+            }
+            executeAmazonCalls();
+            clearInterval(interval);
+            Gdata = [];
+            stn++;
+            respall += response + '\n';
+            if (stn === num) {
+              hideLoading();
+            }
+          }
+        }, 25);
+      }
+      async function printAIResponse(response,index,speed,onclick) {
+        var chars = response.split("");
+        var i = 0;
+        var interval = setInterval(await function() {
+          if(i < chars.length) {
+            var str = chars[i];
+            var str1 = str.replace(/\n/g, "<br>");
+          if (checkURL("Search")===true) {
+            console.log(str1);
+            document.getElementById(aiA.length-1).innerHTML = response;
+          } else {
+            document.getElementById("aidiv" + index).innerHTML += str1;
+          }
+            
+            i++;
+            logscroll();
+          } else {
+            if (aiA.length!==0) {
+              document.getElementById("aidiv" + index).innerHTML += '<!--<div style="text-align: right;">'+tokens+'</div>--><div id="count'+aiA.length+'" style="text-align: right;">'+aiA.length + '/'+maxindex+'<font color="'+bingcolor(aiA.length)+'">●</font></div>';
+            }
+            if (onclick !== '') {
+              document.getElementById("aidiv" + index).addEventListener("click", function() {
+                openModal(onclick);
+              });
+            }
+            clearInterval(interval);
+            stn++;
+            respall += response + '\n';
+            if (stn === num) {
+              
+              hideLoading();
+              respall = '';
+              jyanlu = '';
+            }
+          }
+        }, speed);
+        
+      }
+      // メッセージをチャットログに表示する関数
+      async function displayMessage(message, sender,openurl,speed,token) {
+        if (!(checkURL("Search") === true && sender === "ai")) {
+          const messageElement = document.createElement("div");
+          messageElement.classList.add("message", sender);
+          const bubbleElement = document.createElement("div");
+          bubbleElement.classList.add("bubble");
+          const contentElement = document.createElement("div");
+          if (sender === "ai") {
+            b++;
+            contentElement.id = "aidiv" + b;
+            if (openurl !== '') {
+              contentElement.addEventListener("click", function() {
+                new_window_open(openurl);
+              });
+            }
+            if (token) {
+              printAIResponse(message,b,speed,token);
+            } else {
+              printAIResponse(message,b,speed);
+            }
+
+          } else {
+            contentElement.textContent = message;
+          }
+          bubbleElement.appendChild(contentElement);
+          messageElement.appendChild(bubbleElement);
+          chatLog.appendChild(messageElement);
+      }
+        var chatLogs = document.getElementById("chat-log");
+        chatLogs.scrollTop = chatLogs.scrollHeight;
+      }
+      // ユーザーの入力欄でEnterキーが押されたときに処理を実行
+      document.getElementById("user-input").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          processUserInput();
+        }
+      });
+      async function ChatGPT(searchTerm,version,info,words) {
+        if (checkURL("Search")===true) {
+          document.getElementById(aiA.length).innerHTML += '<form class="example2"><label><input type="checkbox" checked disabled><span>ChatGPTを待機しています…</span></label></form><BR>'+`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="48" height="48" id="loaddesu">
+    <circle cx="12" cy="12" r="10" fill="none" stroke="#ce9af9"
+            stroke-width="2" stroke-dasharray="63" stroke-linecap="round">
+        <animate attributeName="stroke-dashoffset" values="63;16;63" keyTimes="0;.5;1"
+                 keySplines=".42 0 .58 1;.42 0 .58 1;" calcMode="spline"
+                 dur="1.4s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="rotate" values="0,12,12;135,12,12;450,12,12"
+                          keySplines=".42 0 .58 1;.42 0 .58 1;" calcMode="spline"
+                          dur="1.4s" repeatCount="indefinite"/>
+        <animateTransform attributeName="transform" type="rotate" from="0,12,12" to="270,12,12"
+                          calcMode="linear" dur="1.4s" repeatCount="indefinite" additive="sum"/>
+    </circle>
+</svg>`;
+        }
+
+        if (version == 3.5) {
+          // console.log('GPT3.5を利用します');
+          /* GPT3.5 */
+          var sendurl = "https://api.openai.com/v1/chat/completions";
+          const result = [];
+          if (checkURL("Search")===true) {
+            // openModal("検索を開始します。");
+            
+            
+          } else {
+            showLoading();
+          }
+
+          if (checkURL("Search")===false) {
+          // userQとaiAの要素を組み合わせて処理
+          for (let i = 0; i < userQ.length; i++) {
+            result.push({
+              role: "user",
+              content: userQ[i]
+            });
+
+            result.push({
+              role: "assistant",
+              content: aiA[i]
+            }); 
+          }
+        }
+          if (info) {
+            result.push({
+              role: "user",
+              content: `以下のネット検索結果の情報をもとにチャットの応答を日本語で行ってください。
+検索ワード: "`+words+`"ネット検索結果: "`+info +'"'
+            });
+          }
+            result.push({
+              role: "user",
+              content: searchTerm
+            });
+
+          console.log(result);
+          var data = {
+            "model": "gpt-3.5-turbo-0613",
+            "messages": result
+          };  
+        } else {
+          console.log('GPT4を利用します');
+          /* GPT4 */
+          var sendurl = "https://api.openai.com/v1/completions";
+          var data = {
+            model:'text-davinci-003',
+            prompt: `Q: ${searchTerm}\nA: `,
+            max_tokens: 2000
+          }; 
+        }
+        const response = await fetch(sendurl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          hideLoading();
+          if (checkURL("Search")===true) {
+            showbing('エラーが発生しました。エラーコード : ' + response.status,"html")
+          } else {
+            AITagWrite('エラーが発生しました。エラーコード : ' + response.status,1,"");
+          }
+
+
+        }
+        const respdata = await response.json();
+        console.log(respdata);
+        const { choices } = respdata;
+        const { usage } = respdata;
+        if (version == 3.5) {
+          const content = await choices[0].message.content;
+          var str = content;
+        } else {
+          const { text } = choices[0];
+          var str = text;
+        }
+
+          const prompts = await usage.prompt_tokens;
+          const completions = await usage.completion_tokens;
+          const totals = await usage.total_tokens;
+          const coineng = 0.0015 * (totals/1000);
+          var value = await dollaryen();
+              tokens = prompts+' prompt + '+completions+' completion = '+totals+' tokens<BR>利用料金：'+coineng.toFixed(4)+'ドル<BR>　→'+(value*coineng).toFixed(2)+'円相当';
+          
+        console.log(tokens);
+        var replacedStr = str;
+        addTouserQ(searchTerm);
+        addToaiA(replacedStr);
+        document.getElementById("loading").style.display = "none";
+        if (checkURL("Search")===true) {
+          console.log(Gdata);
+          var result = "";
+            for (var i = 0; i < Gdata.length; i++) {
+              result += "<h4>"+Gdata[i].title+'</h4><h5><a href="'+Gdata[i].url+'">'+Gdata[i].url + "</a></h5><h6>"+Gdata[i].snippet+'</h6><br>';
+            }
+            
+          printAIResponsebing(replacedStr,aiA.length-1,'<div style="zoom:0.675;"><h3>`'+words+'`の検索結果</h3>'+result+'</div><br>'+tokens);
+        } else {
+          displayMessage(replacedStr,"ai","",14,tokens);
+        }
+        return {
+          tokens
+        };
+      }
+
+      function showLoading() {
+        document.getElementById("loading").style.display = "block";
+      }
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+      }
+      async function dalle(inputText) {
+        const deepltext = await deepl(inputText,"en");
+        displayMessage(inputText, "user", "", 25);
+        // AITagWrite(inputText, "user","",25);
+        // AITagWrite(deepltext,1,"");
+        document.getElementById("user-input").value="";
+        checkTextbox();
+        if (inputText) {
+          showLoading();
+          const prompt = inputText;
+          const n = 4;
+          const size = "512x512";
+          const data = {
+          "prompt": deepltext,
+          "n": n,
+          "size": size
+          };
+          fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(data)
+          })
+          .then(response => response.json())
+          .then(data => {
+            const url1 = data.data[0].url;
+            const url2 = data.data[1].url;
+            const url3 = data.data[2].url;
+            const url4 = data.data[3].url;
+            hideLoading();
+            AITagWrite('<img src="'+url1+'" width="130"></img><img src="'+url2+'" width="130"></img><BR><img src="'+url3+'" width="130"></img><img src="'+url4+'" width="130"></img><BR>'+deepltext,1,"");
+            setTimeout(function() {logscroll();}, 1400);
+          })
+          .catch(error => console.error(error));
+        }
+      }
+      async function searchWikipedia(searchTerm,multimode) {
+		    // showLoading();
+        // Wikipedia APIへのリクエストURLを作成
+        displayMessage(searchTerm, "user","",25);
+        document.getElementById("user-input").value="";
+        checkTextbox();
+        if (multimode==true) {
+          var url = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&generator=search&gsrsearch=' + searchTerm; // 自動検索
+        } else {
+          var url = 'https://ja.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&exintro&explaintext&titles=' + searchTerm; // 自動検索
+        }
+
+        // let num = 0 ;page
+        // Wikipedia APIへのGETリクエストを送信
+        $.ajax({
+          url: url,
+          type: "GET",
+          dataType: "jsonp",
+          success: function(data) {
+            // APIからのレスポンスデータを取得して表示
+            var pages = data.query.pages;
+            var output = "";
+            var hidef = false;
+            for (var pageId in pages) {
+              var page = pages[pageId];
+              var title = page.title;
+              var pageUrl = "https://ja.m.wikipedia.org/?curid=" + pageId;
+              var extract = page.extract || ""; // 説明文がundefinedの場合は空文字列に設定する
+              if (extract !== "") {
+                // num++;
+                jyanlu += '「'+title+'」';
+                if (multimode==true) {
+                  AITagWrite(extract,1,pageUrl);
+                } else {
+                  displayMessage(extract, "ai",pageUrl,17);
+                }
+                
+              }
+            }
+            var hidef = true;
+            if (extract === "") {
+              displayMessage("申し訳ありませんが、その質問には対応していません。", "ai","",15);
+            }
+          },
+          error: function(error) {
+            console.log("エラーが発生しました。");
+          }
+        });
+      }
+      function new_window_open(wanturl){
+	      window.open(wanturl, '_blank');
+      };
+      function Gsearch(query) {
+        displayMessage(query, "user","",25);
+        document.getElementById("user-input").value="";
+        checkTextbox();
+        // Programmable Search EngineのCX（検索エンジンID）とAPIキーを設定
+        var cx = '35f2be144335b473d';
+        var apiKey = 'AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM';
+        // 検索クエリを取得
+        // var query = document.getElementById('query').value;
+        // APIリクエストを作成
+        var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + query;
+        // AJAXリクエストを送信
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onload = function() {
+          if (xhr.status === 200) {
+            // レスポンスをJSONとしてパース
+            var response = JSON.parse(xhr.responseText);
+            // 検索結果を表示
+            displayResults(response.items);
+          } else {
+            // エラーメッセージを表示
+            console.log('検索エラー: ' + xhr.status);
+          }
+        };
+        xhr.send();
+      }
+      function convertTo3WA(position) {
+        var latitude = position.coords.latitude;
+        var longitude = position.coords.longitude;
+        var language = 'ja';
+        var apiKey = "9DYD85JS";
+        var url = "https://api.what3words.com/v3/convert-to-3wa?coordinates=" + latitude + "%2C" + longitude + "&key=" + apiKey + "&language=" + language;
+        fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          var words = data.words;
+          var gps = data.nearestPlace;
+
+          var mapUrl = 'https://maps.google.com/maps?output=embed&q='+latitude+','+longitude+'&hl=ja&z=19';
+          var embedmaps = '<iframe width="260" height="195" frameborder="0" style="border:0;pointer-events:none;" src="' + mapUrl + '" allowfullscreen></iframe>';
+          AITagWrite('おおよその位置：'+gps+'<BR><a href="https://map.what3words.com/'+words+'">'+words+'</a><BR>'+embedmaps,1,"");
+          // var mapUrl = "https://www.google.com/maps/embed?t=h&hl=ja&pb=!1m18!1m12!1m3!1d0.0000000000000001!2d" + longitude + "!3d" + latitude + "!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMznCsDU3JzIwLjkiTiAxMzlcMTUzLjEzNjE!5e0!3m2!1sen!2sus!4v1622135411744!5m2!1sen!2sus";
+          // var embedtag = '<iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3015.8226996095204!2d'+longitude + '!3d' + latitude + '!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zNDDCsDUzJzUxLjciTiAxNDDCsDM3JzM4LjYiRQ!5e0!3m2!1sja!2sjp!4v1685177906557!5m2!1sja!2sjp" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>';
+        })
+        .catch(error => {
+          console.error("エラー:", error);
+          document.getElementById("result").innerText = "エラーが発生しました。";
+        });
+        document.getElementById("loading").style.display = "none";
+      }
+      function getLocation() {
+        document.getElementById("loading").style.display = "block";
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(convertTo3WA);
+        } else {
+          document.getElementById("loading").style.display = "none";
+          AITagWrite("お使いのブラウザは位置情報取得に対応していません。");
+        }
+      }
+      function deepl(sourceText, lang) {
+        return new Promise((resolve, reject) => {
+
+          const apiKey = '91902cb5-208b-3855-19da-1ee97600d827:fx';
+          const apiUrl = `https://api-free.deepl.com/v2/translate?auth_key=${apiKey}&text=${encodeURIComponent(sourceText)}&target_lang=${lang}`;
+
+          fetch(apiUrl, {
+            method: 'POST'
+          })
+          .then(response => response.json())
+          .then(data => {
+            const translatedText = data.translations[0].text;
+            resolve(translatedText);
+          })
+          .catch(error => {
+            console.error(error);
+            reject(error);
+          });
+        });
+      9}
+
+
+      // 検索結果を表示する関数
+      async function displayResults(results) {
+        var searchResults = '';
+        // 各検索結果を表示
+        for (var i = 0; i < results.length; i++) {
+          var result = results[i];
+          searchResults += '<a href="'+result.link+'" target="_blank">'+result.title+'</a><BR><p>'+result.snippet+'</p><hr>'
+        }
+        await AITagWrite(searchResults,1,"");
+      }
+      function showbing(search,type)
+      {
+        if (type==='start') {
+          AITagWrite('<div id="'+aiA.length+'"><form class="example2"><label><input type="checkbox" checked disabled><span>‘'+search.replace(/ /g, '　')+'’ を検索しています</span></label></form><p id="cn'+aiA.length+'"></p></div>',1,"",true);
+        } else if (type==='add') {
+          document.getElementById(aiA.length).innerHTML+='<form class="example2"><label><input type="checkbox" checked disabled><span>‘'+search.replace(/ /g, '　')+'’ を検索しています</span></label></form>';
+        } else if (type==='end') {
+          document.getElementById("loaddesu").outerHTML = '';
+          document.getElementById(aiA.length-1).innerHTML+= '<form class="example2"><label><input type="checkbox" checked disabled><span>回答を生成しています…</span></label></form><BR>';
+        } else if (type==='gpt') {
+          document.getElementById(aiA.length-1).innerHTML+= '<form class="example2"><label><span><input type="checkbox" checked disabled>ChatGPTを待機しています…</span></label></form><BR>';
+        }
+          setTimeout(logscroll(),350);
+      }
+      async function searchSimilarText(userinput) {
+        try {
+        const embeddings = await fetch('https://api.openai.com/v1/embeddings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            input: userinput,
+            model: "text-embedding-ada-002"
+          })
+        });
+          
+        const data = await embeddings.json();
+        const vectorValues = data.data[0].embedding;
+        console.log(vectorValues);
+    // ベクトルの要素を合計してスカラー値を計算
+    const scalarValue = vectorValues.reduce((acc, val) => acc + val, 0);
+    console.log(scalarValue);
+    // ユーザのリクエストが1から4のいずれかに関連しているか判定
+    if (scalarValue < -2) {
+      console.log("ユーザのリクエストは計算を求めています");
+      // ここに計算をするための処理を追加
+    } else if (scalarValue >= -2 && scalarValue < -1) {
+      console.log("ユーザのリクエストは画像生成を求めています");
+      // ここに画像を生成するための処理を追加
+    } else if (scalarValue >= -1 && scalarValue < 1) {
+      console.log("ユーザのリクエストはネット検索を求めています");
+      // ここにネット検索をするための処理を追加
+    } else if (scalarValue >= 1) {
+      console.log("ユーザのリクエストは単語の意味を調べることを求めています");
+      // ここに単語の意味を調べるための処理を追加
+    }
+  } catch (error) {
+    console.error("エラー:", error);
+  }
+      }
+function selectkeyword(paramValue) {
+  return new Promise(function(resolve, reject) {
+    var url = 'https://script.google.com/macros/s/AKfycbwjWQiAmYfw2qTH91p1UHaQM7nnpyUc5_tzg74RQcR5TiclynanYR9stj8Cy2bwdup2Kw/exec?q=' + encodeURIComponent(paramValue);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          console.log('サーバーからのレスポンス:', response);
+          var data = response;
+          // var data = JSON.parse(json.value);
+          var result = data.value.result.phrases.filter(function(phrase) {
+            return phrase.score >= 22;
+          }).map(function(phrase) {
+            return phrase.text;
+          });
+          var joineds = result.join(" ");
+          if (result.length<=1) {
+            resolve(joineds);
+          } else {
+            resolve(joineds);
+          }
+
+        } else {
+          reject(new Error('リクエストが失敗しました。ステータスコード: ' + xhr.status));
+        }
+      }
+    };
+    xhr.send();
+  });
+}
+function createSpaces(count) {
+  var spaces = '';
+  for (var i = 0; i < count; i++) {
+    spaces += '　'; // 全角スペース
+  }
+  return spaces;
+}
+async function amazoncall(params,ifs) {
+  if (ifs!==false) {
+    displayMessage(params, "user","",25);
+  }
+
+  document.getElementById("user-input").value="";
+        checkTextbox();
+  document.getElementById("loading").style.display = "block";
+  await amazon(params);
+}
+function amazon(paramValue) {
+
+
+        // showbing(paramValue,"start");
+      // var paramValue = document.getElementById('param').value;
+      var url = 'https://original-api.tcpexposer.com/amazonlite?q=' + encodeURIComponent(paramValue); // +'&time='+Date.now();
+      
+      // APIリクエストを送信するためのXMLHttpRequestオブジェクトを作成
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          // レスポンスが受信された場合の処理
+          var response = JSON.parse(xhr.responseText);
+          console.log('サーバーからのレスポンス:', response);
+          const data = response;
+          // JSONから値を取得して表示する
+          // showbing(paramValue,"end2");
+          var star = '';
+          const starnum = (data.sakuraCheckerData.rating).replace('/5','');
+          for (let index = 0; index < Math.round(starnum); index++) {
+            star += '★';
+          }
+          var sakurareview = (data.amazonData.reviewsCount).replace('個の評価','');
+          var review = (data.sakuraCheckerData.review).match(/\d+/g)[0];
+          var sakurastar = '';
+          const sakurastarnum = (data.amazonData.rating).replace('5つ星のうち','');
+          for (let index = 0; index < Math.round(sakurastarnum); index++) {
+            sakurastar += '★';
+          }
+          var embed = createSpaces(5-(star.length));
+          var sakuraembed = createSpaces(5-(sakurastar.length));
+          var deliverys = (data.amazonData.delivery).replace(/詳細を見る/g, '<BR>');
+          hideLoading();
+          AITagWrite('<h3>'+data.amazonData.title+'</h3><h3>'+data.amazonData.brand+'</h3><h1>￥'+data.amazonData.price+'</h1><h2>'+data.sakuraCheckerData.itemSakura+'</h2>サクラを含めた評価：'+parseFloat(sakurastarnum).toFixed(2)+'<font color="#ffa657">'+sakurastar+sakuraembed+'　'+sakurareview+'件</font><BR>サクラを除いた評価：'+parseFloat(starnum).toFixed(2)+'<font color="#ffa657">'+star+embed+'　'+review+'件</font><BR><div class="text-box">'+deliverys+'</div>'+data.amazonData.availability+'<BR><img src="'+data.amazonData.imgSrc+'" onload="logscroll()">',0.9,"https://www.amazon.co.jp/dp/"+data.sakuraCheckerData.itemid,"");
+          
+          /*
+          document.getElementById("review").textContent = data.sakuraCheckerData.review;
+          document.getElementById("rating").textContent = data.sakuraCheckerData.rating;
+          document.getElementById("itemSakura").textContent = data.sakuraCheckerData.itemSakura;
+          document.getElementById("title").textContent = data.amazonData.title;
+          document.getElementById("price").textContent = data.amazonData.price;
+          document.getElementById("amazonRating").textContent = data.amazonData.rating;
+          document.getElementById("reviewsCount").textContent = data.amazonData.reviewsCount;
+          document.getElementById("information").textContent = data.amazonData.information;
+          document.getElementById("image").src = data.amazonData.imgSrc; */
+
+
+        // 結果を表示
+        // var outputElement = document.getElementById("output");
+        // outputElement.innerHTML = result.join(", ");
+        } else if (xhr.readyState === 4 && xhr.status !== 200) {
+          // AITagWrite("内部エラーが発生しました。再試行しています。");
+          amazon(paramValue);
+        }
+      };
+      xhr.withCredentials = true;
+      xhr.send();
+    }
+    function dollaryen() {
+  var url = 'https://script.google.com/macros/s/AKfycbyJoxv8fpQyr-dRK6J8xWvyG-MvUWtldLQNu5AWbkOtAZRbkFvVmqWHuKx22i1eroZ7Xg/exec';
+
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          resolve(response.value);
+        } else {
+          reject(new Error('Request failed. Status: ' + xhr.status));
+        }
+      }
+    };
+    xhr.send();
+  });
+}
+function extractProductIdFromUrl(url) {
+  const domain = "https://www.amazon.co.jp/";
+  
+  // ドメインが一致するか確認
+  if (url.startsWith(domain)) {
+    // URLから商品のIDを抽出するロジックを書く
+    const pattern = /\/dp\/([A-Za-z0-9]+)/;
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    } else {
+      console.log("Invalid URL:", url);
+      return null;
+    }
+  } else {
+    console.log("Invalid domain:", url);
+    return null;
+  }
+}
+// 非同期関数を定義
+async function executeAmazonCalls() {
+  
+  // 配列amazlistの要素を順番に処理する
+  for (const item of amazlist) {
+    await amazoncall(item.productId,false);
+  }
+  amazlist = [];
+  document.getElementById("loaddesun").outerHTML = '';
+}
+var ipdata = '';
+$.get("https://ipinfo.io", function(res) {
+          console.log(res.ip);
+          ipdata = res.ip;
+}, "jsonp");
+function learning() {
+      var text = document.getElementById("user-input").value;
+      var requestBody = {
+        keyword: text, // "https://suggestqueries.google.com/complete/search?client=firefox&q=" + text
+        ip: ipdata,
+        platform: navigator.platform,
+        browser:navigator.appName
+      };
+
+      fetch("https://original-api.tcpexposer.com/learn", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(requestBody)
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log("Saved!");
+      })
+      .catch(error => {
+        console.error("エラー:", error);
+      });
+    }
+    // navigator.clipboard.writeText("hghy");
+    </script>
+  </body>
+</html>
