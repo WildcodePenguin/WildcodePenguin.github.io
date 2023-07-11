@@ -141,13 +141,13 @@
         /* ここに起動時処理を書く */
       }, 200); // 200ミリ秒後に実行する
       var apikey = "";
-      var url = "https://script.googleusercontent.com/macros/echo?user_content_key=plwRahpUqhNnWLDoY-TCmIhjI_xQvW2EmlhB3rnStJ5MTG7ltGxH2dGpMYyYe0y44QZ5SeI9Lty0ByAai39nNCoL9Rcy_bU1m5_BxDlH2jW0nuo2oDemN9CCS2h10ox_1xSncGQajx_ryfhECjZEnGQHBSBSu9D9xGEek4AahH5dlrCFOb_szYyF-reBtMOg6qlcvsSUkeqSl7d19MWRewFIMGEa28SEbB-sESpA7KuHO3TLill6gw&lib=MxvVatS0ZnJhcyYUZQUnFjZe5J8QAxtqO";
+      var url = "https://script.google.com/macros/s/AKfycbwcXAg8wFL3IX0GSccenu89oiue9WpTcO5ukDISoTfZuwWJdyw7wPacv-SxsQfLZE1Z/exec";
       var xhr = new XMLHttpRequest();
       xhr.open("GET", url, true);
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
           var response = JSON.parse(xhr.responseText);
-          apiKey = response.apikey;
+          apiKey = response.openai;
           console.log("API Key:", apiKey);
         }
       };
@@ -394,7 +394,7 @@
       };
       function selectkeyword(paramValue) {
   return new Promise(function(resolve, reject) {
-    var url = 'https://script.google.com/macros/s/AKfycbwjWQiAmYfw2qTH91p1UHaQM7nnpyUc5_tzg74RQcR5TiclynanYR9stj8Cy2bwdup2Kw/exec?q=' + encodeURIComponent(paramValue);
+    var url = 'https://script.google.com/macros/s/AKfycbzQCaJHZ9CSg4diW0MYD6rTxeT-pM3KU7rIZwEhWxFsubonvVhcVIwE_xVFuA6NpKv9kw/exec?q=' + encodeURIComponent(paramValue);
 
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
