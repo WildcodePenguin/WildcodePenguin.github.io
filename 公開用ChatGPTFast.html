@@ -452,6 +452,8 @@
             // printAIResponse(message,b,speed);
             const cid = contentElement.id;
             $('#'+cid).append('' + assistantMessage + '');
+            var chatLogs = document.getElementById("chat-log");
+            chatLogs.scrollTop = chatLogs.scrollHeight;
             await appendAssistantResponse(assistantMessage);
           }
 
