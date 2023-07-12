@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <title>ChatGPT API Fast</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <style>
       pre {
         white-space: pre-wrap;
@@ -409,7 +410,7 @@
             messageElement.classList.add("message", "ai");
             const bubbleElement = document.createElement("div");
             bubbleElement.classList.add("bubble");
-            const contentElement = document.createElement("div");
+            const contentElement = document.createElement("pre");
             b++;
             contentElement.id = "aidiv" + b;
             bubbleElement.appendChild(contentElement);
@@ -449,7 +450,8 @@
             console.log('' + assistantMessage + '');
             // displayMessage(assistantMessage,"ai","",14);
             // printAIResponse(message,b,speed);
-            contentElement.appendChild(document.createTextNode(assistantMessage));
+            const cid = contentElement.id;
+            $('#'+cid).append('' + assistantMessage + '');
             await appendAssistantResponse(assistantMessage);
           }
 
