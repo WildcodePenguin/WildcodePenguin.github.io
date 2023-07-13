@@ -273,8 +273,9 @@ function processUserInput() {
                   searchResults += result.snippet;
                   console.log(result.snippet);
                 }
-                realtimeGPT(keyword,searchResults);
+                
               } 
+		    realtimeGPT(keyword,searchResults);
             };
             xhrs.send();
       
