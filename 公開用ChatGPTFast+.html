@@ -444,7 +444,7 @@ function processUserInput() {
         chatLog.appendChild(messageElement);
         var chatLogs = document.getElementById("chat-log");
         chatLogs.scrollTop = chatLogs.scrollHeight;
-        $('#'+contentElement.id).append('`' + searchTerm + '`を検索しています');
+        // $('#'+contentElement.id).append('`' + searchTerm + '`を検索しています');
     while (true) {
       const { value, done } = await reader.read();
 
