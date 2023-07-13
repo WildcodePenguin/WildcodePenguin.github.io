@@ -264,7 +264,7 @@ function processUserInput() {
             xhrs.open('GET', url, true);
             xhrs.onload = function () {
               if (xhrs.status === 200) {
-                var response = await JSON.parse(xhrs.responseText);
+                var response = JSON.parse(await xhrs.responseText);
                 var results = response.items;
                 for (var i = 0; i < results.length; i++) {
                   var result = results[i];
