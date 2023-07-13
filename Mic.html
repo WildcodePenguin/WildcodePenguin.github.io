@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ウェイクワードの表示</title>
+    <script>
+        // ウェイクワードを検出したときに実行する関数
+        function startText() {
+            const recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+
+            // ウェイクワードを検出したときの処理
+            recognition.onresult = function(event) {
+                const transcript = event.results[event.results.length - 1][0].transcript;
+                if (transcript.toLowerCase().includes("ウェイクワード")) {
+                    document.getElementById("output").textContent = "文字が表示されました！";
+                }
+            };
+
+            // マイクのオーディオストリームを開始
+            recognition.start();
+        }
+    </script>
+</head>
+<body>
+    <h1>ウェイクワードデモ</h1>
+    <button onclick="startText()">ウェイクワードを話す</button>
+    <div id="output"></div>
+</body>
+</html>
