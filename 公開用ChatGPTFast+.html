@@ -258,7 +258,26 @@ function processUserInput() {
     .then(function(keyword) {
       displayMessage(userInput, "user", "", 20);
       logscroll();
-      realtimeGPT(keyword);
+            var cx = '35f2be144335b473d';
+            var apiKey = 'AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM';
+            var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + keyword;
+            var xhrs = new XMLHttpRequest();
+            var searchResults = '';
+            xhrs.open('GET', url, true);
+            xhrs.onload = function () {
+              if (xhrs.status === 200) {
+                var response = JSON.parse(xhrs.responseText);
+                var results = response.items;
+                for (var i = 0; i < results.length; i++) {
+                  var result = results[i];
+                  searchResults += result.snippet;
+                  console.log(result.snippet);
+                }
+                realtimeGPT(keyword,searchResults);
+              } 
+            };
+            xhrs.send();
+      
       document.getElementById("user-input").value = "";
       checkTextbox();
     })
@@ -383,7 +402,7 @@ function processUserInput() {
       xhr.send();
       let messageHistory = [];
       var searchq = "";
-      async function realtimeGPT(searchTerm) {
+      async function realtimeGPT(searchTerm,info) {
             const userInput = document.getElementById('user-input').value;
             if (userInput.trim() === '') {
                 return;
@@ -391,7 +410,8 @@ function processUserInput() {
 
             const responseContainer = document.getElementById('chat-container');
             messageHistory.push({ 'role': 'user', 'content': `以下のネット検索結果の情報をもとにチャットの応答を日本語で行ってください。
-検索ワード: "`+userInput+`"ネット検索結果: "`+searchTerm +'"' });
+検索ワード: "`+searchTerm+`"ネット検索結果: "`+info +'"' });
+	                  messageHistory.push({ 'role': 'user', 'content': userInput});
             const params = {
                 'model': 'gpt-3.5-turbo',
                 'stream': true,
@@ -424,6 +444,7 @@ function processUserInput() {
         chatLog.appendChild(messageElement);
         var chatLogs = document.getElementById("chat-log");
         chatLogs.scrollTop = chatLogs.scrollHeight;
+        $('#'+contentElement.id).append('`' + searchTerm + '`を検索しています');
     while (true) {
       const { value, done } = await reader.read();
 
