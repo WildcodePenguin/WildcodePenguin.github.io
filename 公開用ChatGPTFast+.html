@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>ChatGPT API Fast</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+      pre {
+        white-space: pre-wrap;
+	line-height:1.3em;
+    	font-size:6pt;
+      }
+      body {
+        zoom:3;
+        background-color: #a0b5d9; /* 薄いベージュ色の背景色 #F5F5DC */
+        font-family: "Noto Emoji", "Segoe UI Emoji", "Apple Color Emoji", "Twemoji", sans-serif;
+      }
+      .message.user {
+        display: flex;
+        margin-bottom: 10px;
+        justify-content: flex-end;
+      }
+      .message.ai {
+        display: flex;
+        margin-bottom: 10px;
+        text-align: left;
+      }
+      .bubble { /* ChatGPTの返答の表示枠(user) */
+        background-color: #bbff6d;
+        color: black;
+        padding: 12px;
+        border-radius: 8px;
+        max-width: 60%;
+        position: relative;
+        overflow: hidden;
+        font-size: 10px;
+        animation: slideIn ease-in-out;
+      }
+      .bubble2 { /* 埋め込み要素の表示枠(user) */
+        background-color: #bbff6d;
+        color: black;
+        padding: 12px;
+        border-radius: 8px;
+        /* max-width: 60%; */
+        position: relative;
+        overflow: hidden;
+        font-size: 10px;
+      }
+      .ai .bubble { /* ChatGPTの返答の表示枠(ai) */
+        background-color: #f7f7f8;
+        justify-content: flex-start;
+      }
+      .ai .bubble2 { /* 埋め込み要素の表示枠(ai) */
+        background-color: #f7f7f8;
+        justify-content: flex-start;
+      }
+      @keyframes slideIn {
+        0% {
+          transform: translateX(100%);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+      #chat-container { /* チャット履歴全体 */
+        position: fixed;
+        bottom: 0;
+        left: 6px;
+        right: 6px;
+      }
+      #user-input { /* ユーザープロンプト  */
+        background-color:#ebf7ff;
+        /*width: 80%; */
+        margin-right: 0px;
+      }
+      #loading { /* 読み込み中の要素 */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+      }
+      .spinner { /* 読み込み中の要素 */
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 60px;
+        height: 60px;
+        margin: -30px 0 0 -30px;
+        border-radius: 50%;
+        border: 5px solid #fff;
+        border-top-color: #000;
+        animation: spin 1s ease-in-out infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .choice {
+        background-color: #eff3ff;
+        border-color: #5d4ae4;
+        color: #5d4ae4;
+        border: 1px solid #5d4ae4; /* 枠線を定義 */
+        border-radius: 5px; /* 角丸を定義 */
+        padding: 10px 20px; /* テキストと枠線の間にスペースを設ける */
+        font-size: 18px; /* テキストのサイズを指定 */
+        cursor: pointer; /* マウスカーソルを手の形に変更 */
+        zoom:0.45;
+      }
+      p {
+        font-size: 8px;
+        line-height:10px;
+      }
+      img {
+        opacity: 1;
+      }
+      .faded {
+        opacity: 0.2;
+      }
+      .icon {
+        vertical-align:top;
+      }
+
+    </style>
+  </head>
+  <body>
+    <center><h2 id="main">ChatGPT Fast</h2></center>
+    <div id="chat-container">
+      <div id="chat-log">
+      </div>
+      <div id="loading" style="display:none;">
+        <div class="spinner"></div>
+      </div>
+      <input type="text" id="user-input" oninput="checkTextbox()" placeholder="Send a message." autofocus />
+      <img src="ei-send.png" width="5.5%" class="icon" id="send" onclick="processUserInput();">
+      <BR><p id="footer">　　　0/50<BR>Free Research Preview. ChatGPT API produce inaccurate information about people, places, or facts. ChatGPT Fast July 12 Version</p>
+    </div>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+      document.getElementById('user-input').style.width="85%";
+      var userQ = []; // 過去のリクエスト（ユーザー側）
+      var aiA = []; // 過去のリクエスト（ChatGPT側）
+      // ここから設定部分
+      setTimeout(async function() {
+        /* ここに起動時処理を書く */
+      }, 200); // 200ミリ秒後に実行する
+      var apikey = "";
+      var url = "https://script.google.com/macros/s/AKfycbwcXAg8wFL3IX0GSccenu89oiue9WpTcO5ukDISoTfZuwWJdyw7wPacv-SxsQfLZE1Z/exec";
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          apiKey = response.openai;
+          // console.log("API Key:", apiKey);
+        }
+      };
+      xhr.send();
+      var maxindex = 6; // 最大ターン数の設定
+      // ターン数の色分けサンプル（ターン数が６になっています）
+      function bingcolor(times) {
+        switch (times){
+          case 1:
+          case 2:
+          case 3:
+            return '#24814b';
+          case 4:
+          case 5:
+            return '#dd8602';
+          case 6:
+            return '#d60000';
+          default:
+            return null;
+        }
+      }
+      function addTouserQ(element) {
+        userQ.push(element); // 要素を追加
+        if (userQ.length > maxindex) {
+          userQ.shift(); // 最初の要素を削除
+        }
+      }
+      function addToaiA(element) {
+        aiA.push(element); // 要素を追加
+        if (aiA.length > maxindex) {
+          aiA.shift(); // 最初の要素を削除
+          document.getElementById('count1').outerHTML = '';
+          for (let index = 1; index < maxindex; index++) {
+            let index2 = index + 1;
+            document.getElementById('count'+index2).outerHTML = '<div id="count'+index+'" style="text-align: right;">'+index+'/6<font color="'+bingcolor(index)+'">●</font></div>';
+          }
+        }
+      }
+      
+      const windowHeight = window.innerHeight;
+      const chatLogHeight = 0.32513661202186 *windowHeight -108.16120218579;
+      const styleElement = document.createElement("style");
+      styleElement.textContent = `
+        #chat-log {
+          height: ${chatLogHeight}px; /* 表示する高さを指定 */
+          overflow: scroll; /* スクロールバーを表示 */
+        }
+        .preformatted {
+          white-space: pre-wrap;
+          word-break: break-all;
+          max-width: ${chatLogHeight*0.575}px;
+        }
+      `;
+      let stn = 0;
+      var b= 0;
+      document.head.appendChild(styleElement);
+      checkTextbox();
+      const chatLog = document.getElementById("chat-log");
+      function logscroll() { // 自動でチャット履歴をスクロールする関数
+        document.getElementById("chat-log").scrollTop = document.getElementById("chat-log").scrollHeight;
+      }
+
+
+
+      function checkTextbox() {
+        var textboxValue = document.getElementById("user-input").value;
+        var long = textboxValue.length;
+        let replacedStr = document.getElementById("footer").innerHTML.replace(/\d+(?=\/50)/, long);
+        document.getElementById("footer").innerHTML = replacedStr;
+
+        if (long>50) {
+          document.getElementById("user-input").value = textboxValue.substr(0,50);
+          let replacedStr = document.getElementById("footer").innerHTML.replace(/\d+(?=\/50)/, 50);
+        document.getElementById("footer").innerHTML = replacedStr;
+        }
+
+        const sizepercentage = '5.275%';
+        const marginpx =  '0px 4.2px';
+        var iconlist = document.getElementsByClassName('icon');
+        // 空の時に休む
+        for(i=0;i<iconlist.length;i++){
+          var nowselector = iconlist[i];
+          nowselector.style.margin = marginpx;
+          nowselector.setAttribute("width", sizepercentage);
+          if (textboxValue === "") {
+            nowselector.classList.add("faded");
+            if (nowselector.getAttribute("tkset")==null) {
+              nowselector.setAttribute("tkset",nowselector.getAttribute("onclick"));
+            }
+            nowselector.removeAttribute("onclick");
+          } else {
+            nowselector.classList.remove("faded");
+            var action = nowselector.getAttribute("tkset");
+            nowselector.setAttribute("onclick",action);
+          }
+        }
+      }
+      // ユーザーの入力を処理する関数
+      function processUserInput() {
+        const userInput = document.getElementById("user-input").value;
+        displayMessage(userInput, "user","",20);
+        logscroll();
+        // document.getElementById("loading").style.display = "block";
+        let stn = 0;
+        // ChatGPT(userInput,3.5);
+        realtimeGPT();
+        document.getElementById("user-input").value = "";
+        checkTextbox();
+      }
+
+      async function printAIResponse(response,index,speed) {
+        var chars = response.split("");
+        var i = 0;
+        var interval = setInterval(await function() {
+          if(i < chars.length) {
+            var str = chars[i];
+            document.getElementById("aidiv" + index).innerHTML += str.replace(/\n/g, "<br>");
+            i++;
+            logscroll();
+          } else {
+            if (aiA.length!==0) {
+              document.getElementById("aidiv" + index).innerHTML += '<div id="count'+aiA.length+'" style="text-align: right;">'+aiA.length + '/6<font color="'+bingcolor(aiA.length)+'">●</font></div>';
+            }
+
+            clearInterval(interval);
+            document.getElementById("loading").style.display = "none";
+          }
+        }, speed);
+        
+      }
+      // メッセージをチャットログに表示する関数
+      async function displayMessage(message, sender,openurl,speed) {
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message", sender);
+        const bubbleElement = document.createElement("div");
+        bubbleElement.classList.add("bubble");
+        const contentElement = document.createElement("div");
+        if (sender === "ai") {
+          b++;
+          contentElement.id = "aidiv" + b;
+          if (openurl !== '') {
+            contentElement.addEventListener("click", function() {
+              new_window_open(openurl);
+            });
+          }
+          // printAIResponse(message,b,speed);
+          contentElement.innerHTML += message;
+        } else {
+          contentElement.textContent = message;
+        }
+        bubbleElement.appendChild(contentElement);
+        messageElement.appendChild(bubbleElement);
+        chatLog.appendChild(messageElement);
+        var chatLogs = document.getElementById("chat-log");
+        chatLogs.scrollTop = chatLogs.scrollHeight;
+      }
+      // ユーザーの入力欄でEnterキーが押されたときに処理を実行
+      document.getElementById("user-input").addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+          processUserInput();
+        }
+      });
+      async function ChatGPT(searchTerm) {
+          var sendurl = "https://api.openai.com/v1/chat/completions";
+          const result = [];
+          // userQとaiAの要素を組み合わせて処理
+          for (let i = 0; i < userQ.length; i++) {
+            result.push({
+              role: "user",
+              content: userQ[i]
+            });
+
+            result.push({
+              role: "assistant",
+              content: aiA[i]
+            }); 
+          }
+          result.push({
+              role: "user",
+              content: searchTerm
+            });
+          console.log(result);
+          var data = {
+            "model": "gpt-3.5-turbo",
+            "messages": result
+          };  
+
+        const response = await fetch(sendurl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) {
+          document.getElementById("loading").style.display = "none";
+          displayMessage('エラーが発生しました。エラーコード : ' + response.status,"ai","",14);
+        }
+        const { choices } = await response.json();
+          const content = await choices[0].message.content;
+          var str = content;
+        var replacedStr = str;
+        addTouserQ(searchTerm);
+        addToaiA(replacedStr);
+        document.getElementById("loading").style.display = "none";
+        displayMessage(replacedStr,"ai","",14);
+      }
+      function new_window_open(wanturl){
+	      window.open(wanturl, '_blank');
+      };
+      var GPTAPI = "";
+      var url = "https://script.google.com/macros/s/AKfycbwcXAg8wFL3IX0GSccenu89oiue9WpTcO5ukDISoTfZuwWJdyw7wPacv-SxsQfLZE1Z/exec";
+      var xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          GPTAPI = response.openai;
+          console.log("API Key:", GPTAPI);
+        }
+      };
+      xhr.send();
+      let messageHistory = [];
+      var searchq = "";
+      async function realtimeGPT() {
+            const userInput = document.getElementById('user-input').value;
+            if (userInput.trim() === '') {
+                return;
+            }
+            selectkeyword(userInput)
+              .then(function(keywd) {
+                var cx = '35f2be144335b473d';
+                var apiKey = 'AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM';
+                var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + keywd;
+                var xhrs = new XMLHttpRequest();
+                var searchResults = '';
+                xhrs.open('GET', url, true);
+                xhrs.onload = function () {
+                  if (xhrs.status === 200) {
+                    var response = JSON.parse(xhrs.responseText);
+                    var results = response.items;
+                    for (var i = 0; i < results.length; i++) {
+                      var result = results[i];
+                      searchResults += result.snippet;
+                      console.log(result.snippet);
+                    }
+                    searchq = searchResults;
+                  } 
+                };
+                xhrs.send();
+              })
+              .catch(function(error) {
+                console.error(error); // エラーハンドリングを行う
+              });
+              document.getElementById('user-input').value = '';
+
+            const responseContainer = document.getElementById('chat-container');
+            messageHistory.push({ 'role': 'user', 'content': `以下のネット検索結果の情報をもとにチャットの応答を日本語で行ってください。
+検索ワード: "`+searchq+`"ネット検索結果: "`+searchq +'"' });
+            const params = {
+                'model': 'gpt-3.5-turbo',
+                'stream': true,
+                'messages': messageHistory
+            };
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + GPTAPI // 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'
+            };
+
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(params)
+            });
+
+            const reader = response.body.getReader();
+    const textDecoder = new TextDecoder();
+    let buffer = '';
+    const messageElement = document.createElement("div");
+            messageElement.classList.add("message", "ai");
+            const bubbleElement = document.createElement("div");
+            bubbleElement.classList.add("bubble");
+            const contentElement = document.createElement("pre");
+            b++;
+            contentElement.id = "aidiv" + b;
+            bubbleElement.appendChild(contentElement);
+        messageElement.appendChild(bubbleElement);
+        chatLog.appendChild(messageElement);
+        var chatLogs = document.getElementById("chat-log");
+        chatLogs.scrollTop = chatLogs.scrollHeight;
+    while (true) {
+      const { value, done } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += textDecoder.decode(value, { stream: true });
+
+      while (true) {
+        const newlineIndex = buffer.indexOf('\n');
+        if (newlineIndex === -1) {
+          break;
+        }
+
+        const line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+
+        if (line.startsWith('data:')) {
+
+          if (line.includes('[DONE]')) {
+            $('#chat-history').append('<hr>');
+            return;
+          }
+
+          const jsonData = JSON.parse(line.slice(5));
+
+          if (jsonData.choices && jsonData.choices[0].delta && jsonData.choices[0].delta.content) {
+            const assistantMessage = jsonData.choices[0].delta.content;
+            console.log('' + assistantMessage + '');
+            // displayMessage(assistantMessage,"ai","",14);
+            // printAIResponse(message,b,speed);
+            const cid = contentElement.id;
+            $('#'+cid).append('' + assistantMessage + '');
+            var chatLogs = document.getElementById("chat-log");
+            chatLogs.scrollTop = chatLogs.scrollHeight;
+            await appendAssistantResponse(assistantMessage);
+          }
+
+        }
+
+      }
+        }
+      }
+// 最新の返答を取得する関数
+function getLatestResponse(data) {
+  const choices = data.choices;
+  if (choices.length > 0) {
+    const latestChoice = choices[choices.length - 1];
+    if (latestChoice.delta && latestChoice.delta.content) {
+      return latestChoice.delta.content;
+    }
+  }
+  return '';
+}
+async function appendAssistantResponse(assistantMessage) {
+    messageHistory.push({ 'role': 'assistant', 'content': assistantMessage });
+  }
+            function selectkeyword(paramValue) {
+  return new Promise(function(resolve, reject) {
+    var url = 'https://script.google.com/macros/s/AKfycbzQCaJHZ9CSg4diW0MYD6rTxeT-pM3KU7rIZwEhWxFsubonvVhcVIwE_xVFuA6NpKv9kw/exec?q=' + encodeURIComponent(paramValue);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function() {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          var response = JSON.parse(xhr.responseText);
+          console.log('サーバーからのレスポンス:', response);
+          var data = response;
+          // var data = JSON.parse(json.value);
+          var result = data.result.phrases.filter(function(phrase) {
+            return phrase.score >= 22;
+          }).map(function(phrase) {
+            return phrase.text;
+          });
+          var joineds = result.join(" ");
+          if (result.length<=1) {
+            resolve(joineds);
+          } else {
+            resolve(joineds);
+          }
+
+        } else {
+          reject(new Error('リクエストが失敗しました。ステータスコード: ' + xhr.status));
+        }
+      }
+    };
+    xhr.send();
+  });
+}
+    </script>
+  </body>
+</html>
