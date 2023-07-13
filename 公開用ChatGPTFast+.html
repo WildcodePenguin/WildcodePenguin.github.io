@@ -266,16 +266,15 @@ function processUserInput() {
             xhrs.open('GET', url, true);
             xhrs.onload = function () {
               if (xhrs.status === 200) {
-                var response = JSON.parse(xhrs.responseText);
+                var response = await JSON.parse(xhrs.responseText);
                 var results = response.items;
                 for (var i = 0; i < results.length; i++) {
                   var result = results[i];
                   searchResults += result.snippet;
                   console.log(result.snippet);
                 }
-                
+		realtimeGPT(keyword,searchResults);
               } 
-		    realtimeGPT(keyword,searchResults);
             };
             xhrs.send();
       
