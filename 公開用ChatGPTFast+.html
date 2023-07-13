@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>ChatGPT API Fast</title>
+    <title>ChatGPT API Fast+</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <style>
       pre {
@@ -125,7 +125,7 @@
     </style>
   </head>
   <body>
-    <center><h2 id="main">ChatGPT Fast</h2></center>
+    <center><h2 id="main">ChatGPT Fast+</h2></center>
     <div id="chat-container">
       <div id="chat-log">
       </div>
@@ -252,17 +252,21 @@
         }
       }
       // ユーザーの入力を処理する関数
-      function processUserInput() {
-        const userInput = document.getElementById("user-input").value;
-        displayMessage(userInput, "user","",20);
-        logscroll();
-        // document.getElementById("loading").style.display = "block";
-        let stn = 0;
-        // ChatGPT(userInput,3.5);
-        realtimeGPT();
-        document.getElementById("user-input").value = "";
-        checkTextbox();
-      }
+function processUserInput() {
+  const userInput = document.getElementById("user-input").value;
+  selectkeyword(userInput)
+    .then(function(keyword) {
+      displayMessage(userInput, "user", "", 20);
+      logscroll();
+      realtimeGPT(keyword);
+      document.getElementById("user-input").value = "";
+      checkTextbox();
+    })
+    .catch(function(error) {
+      console.error(error);
+    });
+}
+
 
       async function printAIResponse(response,index,speed) {
         var chars = response.split("");
@@ -379,41 +383,15 @@
       xhr.send();
       let messageHistory = [];
       var searchq = "";
-      async function realtimeGPT() {
+      async function realtimeGPT(searchTerm) {
             const userInput = document.getElementById('user-input').value;
             if (userInput.trim() === '') {
                 return;
             }
-            await selectkeyword(userInput)
-              .then(function(keywd) {
-                var cx = '35f2be144335b473d';
-                var apiKey = 'AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM';
-                var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + keywd;
-                var xhrs = new XMLHttpRequest();
-                var searchResults = '';
-                xhrs.open('GET', url, true);
-                xhrs.onload = function () {
-                  if (xhrs.status === 200) {
-                    var response = JSON.parse(xhrs.responseText);
-                    var results = response.items;
-                    for (var i = 0; i < results.length; i++) {
-                      var result = results[i];
-                      searchResults += result.snippet;
-                      console.log(result.snippet);
-                    }
-                    searchq = searchResults;
-                  } 
-                };
-                xhrs.send();
-              })
-              .catch(function(error) {
-                console.error(error); // エラーハンドリングを行う
-              });
-              document.getElementById('user-input').value = '';
 
             const responseContainer = document.getElementById('chat-container');
             messageHistory.push({ 'role': 'user', 'content': `以下のネット検索結果の情報をもとにチャットの応答を日本語で行ってください。
-検索ワード: "`+searchq+`"ネット検索結果: "`+searchq +'"' });
+検索ワード: "`+userInput+`"ネット検索結果: "`+searchTerm +'"' });
             const params = {
                 'model': 'gpt-3.5-turbo',
                 'stream': true,
