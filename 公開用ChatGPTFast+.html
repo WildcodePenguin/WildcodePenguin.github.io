@@ -258,9 +258,7 @@ function processUserInput() {
     .then(function(keyword) {
       displayMessage(userInput, "user", "", 20);
       logscroll();
-            var cx = '35f2be144335b473d';
-            var apiKey = 'AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM';
-            var url = 'https://www.googleapis.com/customsearch/v1?key=' + apiKey + '&cx=' + cx + '&q=' + keyword;
+            var url = 'https://www.googleapis.com/customsearch/v1?key=AIzaSyAZw9_0cDuXu7DYTVoBPaZttwmHhTJfwJM&cx=35f2be144335b473d&q=' + keyword;
             var xhrs = new XMLHttpRequest();
             var searchResults = '';
             xhrs.open('GET', url, true);
